@@ -36,7 +36,7 @@ const Login: React.FC = () => {
         .select('*')
         .eq('email', email)
         .eq('password', password) // NOTE: In a real application, never store passwords in plaintext
-        .eq('role', 'user')
+        .in('role', ['resident', 'staff'])
         .single();
 
       if (error) {
@@ -44,7 +44,7 @@ const Login: React.FC = () => {
         console.info('Falling back to mock users');
 
         // Fall back to mock data
-        const user = mockUsers.find(user => user.email === email && user.password === password && user.role === 'user');
+        const user = mockUsers.find(user => user.email === email && user.password === password && (user.role === 'resident' || user.role === 'staff'));
         
         if (!user) {
           toast({
@@ -58,10 +58,10 @@ const Login: React.FC = () => {
         
         // Use mock user
         setIsAuthenticated(true);
-        setUserRole('user');
+        setUserRole(user.role as 'resident' | 'staff');
         toast({
           title: "Login Successful",
-          description: "Welcome back!",
+          description: `Welcome back, ${user.role}!`,
         });
         navigate('/');
         return;
@@ -69,10 +69,10 @@ const Login: React.FC = () => {
 
       // Supabase authentication successful
       setIsAuthenticated(true);
-      setUserRole('user');
+      setUserRole(data.role as 'resident' | 'staff');
       toast({
         title: "Login Successful",
-        description: "Welcome back!",
+        description: `Welcome back, ${data.role}!`,
       });
       navigate('/');
 

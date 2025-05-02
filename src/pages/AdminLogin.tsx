@@ -138,7 +138,7 @@ const AdminLogin: React.FC = () => {
           <div className="text-center text-sm text-muted-foreground mt-2">
             Not an administrator?{" "}
             <Link to="/login" className="text-primary hover:underline">
-              Resident Login
+              Resident/Staff Login
             </Link>
           </div>
         </CardFooter>

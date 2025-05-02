@@ -1,4 +1,3 @@
-
 // Custom database types that extend the auto-generated Supabase types
 import { Database as GeneratedDatabase } from '@/integrations/supabase/types';
 
@@ -171,6 +170,39 @@ export interface Database extends GeneratedDatabase {
           created_at?: string;
         };
       };
+      housekeeping: {
+        Row: {
+          id: number;
+          area: string;
+          task_description: string;
+          assigned_staff: number;
+          frequency: string;
+          status: string;
+          last_completed: string;
+          next_scheduled: string;
+          created_at?: string;
+        };
+        Insert: {
+          area: string;
+          task_description: string;
+          assigned_staff: number;
+          frequency: string;
+          status: string;
+          last_completed: string;
+          next_scheduled: string;
+          created_at?: string;
+        };
+        Update: {
+          area?: string;
+          task_description?: string;
+          assigned_staff?: number;
+          frequency?: string;
+          status?: string;
+          last_completed?: string;
+          next_scheduled?: string;
+          created_at?: string;
+        };
+      };
       // Add other tables as needed
     };
     Views: GeneratedDatabase['public']['Views'];
@@ -187,6 +219,7 @@ export type Parking = Database['public']['Tables']['parking']['Row'];
 export type DeliveryRecord = Database['public']['Tables']['delivery_records']['Row'];
 export type Staff = Database['public']['Tables']['staff']['Row'];
 export type User = Database['public']['Tables']['users']['Row'];
+export type Housekeeping = Database['public']['Tables']['housekeeping']['Row'];
 
 // Mock data for residents to use when the database table doesn't exist yet
 export const mockResidents: Resident[] = [
@@ -420,8 +453,68 @@ export const mockUsers: User[] = [
   },
   {
     id: 2,
-    email: 'user@example.com',
-    password: 'user123',
-    role: 'user',
+    email: 'staff@example.com',
+    password: 'staff123',
+    role: 'staff',
+  },
+  {
+    id: 3,
+    email: 'resident@example.com',
+    password: 'resident123',
+    role: 'resident',
+  },
+];
+
+// Mock data for housekeeping
+export const mockHousekeeping: Housekeeping[] = [
+  {
+    id: 1,
+    area: 'Main Lobby',
+    task_description: 'Floor cleaning and polishing',
+    assigned_staff: 3,
+    frequency: 'Daily',
+    status: 'Completed',
+    last_completed: '2025-05-01',
+    next_scheduled: '2025-05-02',
+  },
+  {
+    id: 2,
+    area: 'Swimming Pool',
+    task_description: 'Water treatment and cleaning',
+    assigned_staff: 2,
+    frequency: 'Weekly',
+    status: 'Scheduled',
+    last_completed: '2025-04-25',
+    next_scheduled: '2025-05-02',
+  },
+  {
+    id: 3,
+    area: 'Garden',
+    task_description: 'Lawn mowing and plant trimming',
+    assigned_staff: 3,
+    frequency: 'Weekly',
+    status: 'In Progress',
+    last_completed: '2025-04-25',
+    next_scheduled: '2025-05-02',
+  },
+  {
+    id: 4,
+    area: 'Gym',
+    task_description: 'Equipment cleaning and sanitization',
+    assigned_staff: 4,
+    frequency: 'Daily',
+    status: 'Completed',
+    last_completed: '2025-05-01',
+    next_scheduled: '2025-05-02',
+  },
+  {
+    id: 5,
+    area: 'Parking Lot',
+    task_description: 'Sweeping and garbage collection',
+    assigned_staff: 2,
+    frequency: 'Bi-weekly',
+    status: 'Overdue',
+    last_completed: '2025-04-15',
+    next_scheduled: '2025-04-29',
   },
 ];

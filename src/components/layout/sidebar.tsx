@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useContext } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useSidebarContext } from '../providers/sidebar-provider';
@@ -16,17 +16,28 @@ import {
   FileText,
   Bed,
   ParkingMeter,
-  Truck 
+  Truck,
+  Settings as SettingsIcon,
+  ClipboardList
 } from 'lucide-react';
+import AuthContext from '@/context/AuthContext';
 
 interface NavItemProps {
   icon: React.ElementType;
   label: string;
   href: string;
   active?: boolean;
+  roles?: Array<'admin' | 'staff' | 'resident' | null>;
 }
 
-const NavItem: React.FC<NavItemProps> = ({ icon: Icon, label, href, active }) => {
+const NavItem: React.FC<NavItemProps> = ({ icon: Icon, label, href, active, roles }) => {
+  const { userRole } = useContext(AuthContext);
+
+  // If roles is defined and the current user's role is not in the allowed roles, don't render the item
+  if (roles && !roles.includes(userRole)) {
+    return null;
+  }
+
   return (
     <Link
       to={href}
@@ -45,20 +56,22 @@ const Sidebar: React.FC = () => {
   const location = useLocation();
   const { isOpen } = useSidebarContext();
   const isMobile = useIsMobile();
+  const { userRole } = useContext(AuthContext);
   
   const navItems = [
     { icon: Home, label: 'Dashboard', href: '/' },
-    { icon: Users, label: 'Residents', href: '/residents' },
+    { icon: Users, label: 'Residents', href: '/residents', roles: ['admin', 'staff'] },
     { icon: Building, label: 'Properties', href: '/properties' },
     { icon: Bed, label: 'Amenities', href: '/amenities' },
     { icon: ParkingMeter, label: 'Parking', href: '/parking' },
     { icon: Truck, label: 'Delivery Records', href: '/delivery-records' },
-    { icon: Users, label: 'Staff', href: '/staff' },
+    { icon: Users, label: 'Staff', href: '/staff', roles: ['admin'] },
+    { icon: ClipboardList, label: 'Housekeeping', href: '/housekeeping' },
     { icon: FileText, label: 'Notices', href: '/notices' },
     { icon: MessageSquare, label: 'Complaints', href: '/complaints' },
     { icon: CreditCard, label: 'Payments', href: '/payments' },
     { icon: User, label: 'Profile', href: '/profile' },
-    { icon: Settings, label: 'Settings', href: '/settings' },
+    { icon: SettingsIcon, label: 'Settings', href: '/settings' },
   ];
 
   if (isMobile && !isOpen) {
@@ -84,6 +97,7 @@ const Sidebar: React.FC = () => {
                   label={item.label}
                   href={item.href}
                   active={location.pathname === item.href}
+                  roles={item.roles}
                 />
               ))}
             </div>

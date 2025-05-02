@@ -4,8 +4,8 @@ import { createContext } from 'react';
 interface AuthContextType {
   isAuthenticated: boolean;
   setIsAuthenticated: (value: boolean) => void;
-  userRole: 'user' | 'admin' | null;
-  setUserRole: (value: 'user' | 'admin' | null) => void;
+  userRole: 'admin' | 'staff' | 'resident' | null;
+  setUserRole: (value: 'admin' | 'staff' | 'resident' | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType>({

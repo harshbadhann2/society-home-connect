@@ -15,6 +15,8 @@ import DeliveryRecords from "./pages/DeliveryRecords";
 import Staff from "./pages/Staff";
 import Payments from "./pages/Payments";
 import Profile from "./pages/Profile";
+import Settings from "./pages/Settings";
+import Housekeeping from "./pages/Housekeeping";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import AdminLogin from "./pages/AdminLogin";
@@ -25,7 +27,7 @@ const queryClient = new QueryClient();
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userRole, setUserRole] = useState<'user' | 'admin' | null>(null);
+  const [userRole, setUserRole] = useState<'admin' | 'staff' | 'resident' | null>(null);
   
   return (
     <QueryClientProvider client={queryClient}>
@@ -48,7 +50,8 @@ const App = () => {
               <Route path="/complaints" element={<Complaints />} />
               <Route path="/payments" element={<Payments />} />
               <Route path="/profile" element={<Profile />} />
-              <Route path="/settings" element={<NotFound />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="/housekeeping" element={<Housekeeping />} />
               {/* Catch-all route */}
               <Route path="*" element={<NotFound />} />
             </Routes>
