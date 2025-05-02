@@ -4,7 +4,20 @@ import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useSidebarContext } from '../providers/sidebar-provider';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Building, Calendar, CreditCard, Home, MessageSquare, Settings, User, Users, FileText } from 'lucide-react';
+import { 
+  Building, 
+  Calendar, 
+  CreditCard, 
+  Home, 
+  MessageSquare, 
+  Settings, 
+  User, 
+  Users, 
+  FileText,
+  Bed,
+  ParkingMeter,
+  Truck 
+} from 'lucide-react';
 
 interface NavItemProps {
   icon: React.ElementType;
@@ -37,9 +50,12 @@ const Sidebar: React.FC = () => {
     { icon: Home, label: 'Dashboard', href: '/' },
     { icon: Users, label: 'Residents', href: '/residents' },
     { icon: Building, label: 'Properties', href: '/properties' },
+    { icon: Bed, label: 'Amenities', href: '/amenities' },
+    { icon: ParkingMeter, label: 'Parking', href: '/parking' },
+    { icon: Truck, label: 'Delivery Records', href: '/delivery-records' },
+    { icon: Users, label: 'Staff', href: '/staff' },
     { icon: FileText, label: 'Notices', href: '/notices' },
     { icon: MessageSquare, label: 'Complaints', href: '/complaints' },
-    { icon: Calendar, label: 'Facilities', href: '/facilities' },
     { icon: CreditCard, label: 'Payments', href: '/payments' },
     { icon: User, label: 'Profile', href: '/profile' },
     { icon: Settings, label: 'Settings', href: '/settings' },

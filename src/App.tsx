@@ -9,34 +9,54 @@ import Residents from "./pages/Residents";
 import Properties from "./pages/Properties";
 import Notices from "./pages/Notices";
 import Complaints from "./pages/Complaints";
-import Facilities from "./pages/Facilities";
+import Amenities from "./pages/Amenities";
+import Parking from "./pages/Parking";
+import DeliveryRecords from "./pages/DeliveryRecords";
+import Staff from "./pages/Staff";
 import Payments from "./pages/Payments";
+import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import Login from "./pages/Login";
+import AdminLogin from "./pages/AdminLogin";
+import { useState } from "react";
+import AuthContext from "./context/AuthContext";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/residents" element={<Residents />} />
-          <Route path="/properties" element={<Properties />} />
-          <Route path="/notices" element={<Notices />} />
-          <Route path="/complaints" element={<Complaints />} />
-          <Route path="/facilities" element={<Facilities />} />
-          <Route path="/payments" element={<Payments />} />
-          <Route path="/profile" element={<NotFound />} />
-          <Route path="/settings" element={<NotFound />} />
-          {/* Catch-all route */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userRole, setUserRole] = useState<'user' | 'admin' | null>(null);
+  
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthContext.Provider value={{ isAuthenticated, setIsAuthenticated, userRole, setUserRole }}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/admin-login" element={<AdminLogin />} />
+              <Route path="/" element={<Index />} />
+              <Route path="/residents" element={<Residents />} />
+              <Route path="/properties" element={<Properties />} />
+              <Route path="/amenities" element={<Amenities />} />
+              <Route path="/parking" element={<Parking />} />
+              <Route path="/delivery-records" element={<DeliveryRecords />} />
+              <Route path="/staff" element={<Staff />} />
+              <Route path="/notices" element={<Notices />} />
+              <Route path="/complaints" element={<Complaints />} />
+              <Route path="/payments" element={<Payments />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/settings" element={<NotFound />} />
+              {/* Catch-all route */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthContext.Provider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
