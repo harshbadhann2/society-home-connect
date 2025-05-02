@@ -31,6 +31,7 @@ const Residents: React.FC = () => {
   const { data: residents, isLoading, error } = useQuery({
     queryKey: ['residents'],
     queryFn: async () => {
+      // Use the typed client to query the residents table
       const { data, error } = await supabase
         .from('residents')
         .select('*');
