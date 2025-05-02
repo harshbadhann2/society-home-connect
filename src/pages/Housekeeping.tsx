@@ -31,6 +31,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { mockHousekeeping, mockStaff } from '@/types/database';
 import { Housekeeping, Staff } from '@/types/database';
+import { ClipboardCheck, ClipboardList, Clock } from 'lucide-react';
 
 const HousekeepingPage: React.FC = () => {
   const [housekeepingTasks, setHousekeepingTasks] = useState<Housekeeping[]>([]);
@@ -57,7 +58,7 @@ const HousekeepingPage: React.FC = () => {
           console.info('Falling back to mock housekeeping data');
           setHousekeepingTasks(mockHousekeeping);
         } else {
-          setHousekeepingTasks(housekeepingData || []);
+          setHousekeepingTasks(housekeepingData || mockHousekeeping);
         }
 
         if (staffError) {
@@ -65,7 +66,7 @@ const HousekeepingPage: React.FC = () => {
           console.info('Falling back to mock staff data');
           setStaffList(mockStaff);
         } else {
-          setStaffList(staffData || []);
+          setStaffList(staffData || mockStaff);
         }
       } catch (err) {
         console.error('Error fetching data:', err);
@@ -116,17 +117,63 @@ const HousekeepingPage: React.FC = () => {
     return matchesSearch && matchesFilter;
   });
 
+  const completedTasks = housekeepingTasks.filter(task => task.status.toLowerCase() === 'completed').length;
+  const inProgressTasks = housekeepingTasks.filter(task => task.status.toLowerCase() === 'in progress').length;
+  const overdueTasks = housekeepingTasks.filter(task => task.status.toLowerCase() === 'overdue').length;
+
   return (
     <Layout>
       <div className="container mx-auto py-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold">Housekeeping Tasks</h1>
-            <p className="text-muted-foreground">Manage and track housekeeping tasks for the property.</p>
+            <p className="text-muted-foreground">Manage and track housekeeping tasks for Nirvaan Heights</p>
           </div>
           <Button className="mt-4 md:mt-0">
             Add New Task
           </Button>
+        </div>
+
+        {/* Task Statistics */}
+        <div className="grid gap-4 md:grid-cols-3 mb-6">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">Completed Tasks</CardTitle>
+              <CardDescription>Tasks finished</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center">
+                <ClipboardCheck className="h-8 w-8 text-primary mr-2" />
+                <span className="text-2xl font-bold">{completedTasks}</span>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">In Progress</CardTitle>
+              <CardDescription>Currently being handled</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center">
+                <ClipboardList className="h-8 w-8 text-primary mr-2" />
+                <span className="text-2xl font-bold">{inProgressTasks}</span>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">Overdue</CardTitle>
+              <CardDescription>Needs attention</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center">
+                <Clock className="h-8 w-8 text-primary mr-2" />
+                <span className="text-2xl font-bold">{overdueTasks}</span>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         <Card className="mb-8">

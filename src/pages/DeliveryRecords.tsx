@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Layout from '@/components/layout/layout';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,7 +18,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { useQuery } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { DeliveryRecord as DeliveryRecordType, mockDeliveryRecords, mockResidents } from '@/types/database';
 import { Input } from '@/components/ui/input';
@@ -39,34 +39,62 @@ const getStatusColor = (status: string) => {
 
 const DeliveryRecords: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [deliveryRecords, setDeliveryRecords] = useState<DeliveryRecordType[]>([]);
+  const [residents, setResidents] = useState(mockResidents);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
   
-  const { data: deliveryRecords, isLoading, error } = useQuery({
-    queryKey: ['deliveryRecords'],
-    queryFn: async () => {
+  useEffect(() => {
+    const fetchData = async () => {
       try {
-        const { data, error } = await supabase.from('delivery_records').select('*');
-        
-        if (error) {
-          console.info('Supabase error:', error);
+        // Fetch delivery records
+        const { data: recordsData, error: recordsError } = await supabase
+          .from('delivery_records')
+          .select('*');
+          
+        if (recordsError) {
+          console.info('Supabase delivery records error:', recordsError);
           console.info('Using mock delivery records data');
-          return mockDeliveryRecords;
+          setDeliveryRecords(mockDeliveryRecords);
+        } else {
+          setDeliveryRecords(recordsData || mockDeliveryRecords);
         }
         
-        return data as DeliveryRecordType[];
+        // Fetch residents
+        const { data: residentsData, error: residentsError } = await supabase
+          .from('residents')
+          .select('*');
+          
+        if (residentsError) {
+          console.info('Supabase residents error:', residentsError);
+          console.info('Using mock residents data');
+          setResidents(mockResidents);
+        } else {
+          setResidents(residentsData || mockResidents);
+        }
       } catch (err) {
-        console.error('Error fetching delivery records:', err);
-        return mockDeliveryRecords;
+        console.error('Error fetching data:', err);
+        toast({
+          variant: "destructive",
+          title: "Error fetching data",
+          description: "Could not fetch delivery records. Using mock data instead.",
+        });
+        setDeliveryRecords(mockDeliveryRecords);
+      } finally {
+        setLoading(false);
       }
-    }
-  });
+    };
+    
+    fetchData();
+  }, [toast]);
 
   const getResidentName = (residentId: number) => {
-    const resident = mockResidents.find(r => r.id === residentId);
+    const resident = residents.find(r => r.id === residentId);
     return resident ? resident.name : 'Unknown';
   };
 
   const getResidentApartment = (residentId: number) => {
-    const resident = mockResidents.find(r => r.id === residentId);
+    const resident = residents.find(r => r.id === residentId);
     return resident ? resident.apartment : 'Unknown';
   };
 
@@ -88,7 +116,7 @@ const DeliveryRecords: React.FC = () => {
           <div>
             <h2 className="text-3xl font-bold tracking-tight">Delivery Records</h2>
             <p className="text-muted-foreground">
-              Track package and courier deliveries
+              Track package and courier deliveries for Nirvaan Heights
             </p>
           </div>
           <Button>Add Delivery</Button>
@@ -152,10 +180,8 @@ const DeliveryRecords: React.FC = () => {
               />
             </div>
 
-            {isLoading ? (
+            {loading ? (
               <div className="py-8 text-center">Loading delivery records...</div>
-            ) : error ? (
-              <div className="py-8 text-center text-red-500">Error loading delivery records</div>
             ) : (
               <div className="rounded-md border">
                 <Table>

@@ -1,15 +1,35 @@
 
-import React from 'react';
+import React, { useState, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { Bell, Menu, User } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useSidebarContext } from '../providers/sidebar-provider';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import AuthContext from '@/context/AuthContext';
 
 const Header: React.FC = () => {
   const isMobile = useIsMobile();
   const { toggleSidebar } = useSidebarContext();
+  const { userRole, setIsAuthenticated, setUserRole } = useContext(AuthContext);
+  const [notifications, setNotifications] = useState([
+    { id: 1, message: "New notice posted", time: "2 min ago" },
+    { id: 2, message: "Payment reminder", time: "1 hour ago" },
+    { id: 3, message: "Maintenance scheduled", time: "Yesterday" }
+  ]);
+  
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setUserRole(null);
+  };
   
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -37,21 +57,60 @@ const Header: React.FC = () => {
               <polyline points="9 22 9 12 15 12 15 22" />
             </svg>
           </div>
-          <span className="text-lg font-bold tracking-tight">BlueSky Society</span>
+          <span className="text-lg font-bold tracking-tight">Nirvaan Heights</span>
         </Link>
         
         <div className="ml-auto flex items-center gap-2">
-          <Button variant="outline" size="icon" className="relative">
-            <Bell className="h-5 w-5" />
-            <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-destructive" />
-            <span className="sr-only">Notifications</span>
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" className="relative">
+                <Bell className="h-5 w-5" />
+                {notifications.length > 0 && (
+                  <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-destructive" />
+                )}
+                <span className="sr-only">Notifications</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-80">
+              <DropdownMenuLabel>Notifications</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {notifications.map((notification) => (
+                <DropdownMenuItem key={notification.id} className="p-3 cursor-pointer">
+                  <div>
+                    <p>{notification.message}</p>
+                    <p className="text-xs text-muted-foreground">{notification.time}</p>
+                  </div>
+                </DropdownMenuItem>
+              ))}
+              {notifications.length === 0 && (
+                <div className="p-4 text-center text-muted-foreground">
+                  No new notifications
+                </div>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
           
-          <Avatar>
-            <AvatarFallback className="bg-secondary text-secondary-foreground">
-              <User className="h-5 w-5" />
-            </AvatarFallback>
-          </Avatar>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Avatar className="cursor-pointer">
+                <AvatarFallback className="bg-secondary text-secondary-foreground">
+                  <User className="h-5 w-5" />
+                </AvatarFallback>
+              </Avatar>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link to="/profile">Profile</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link to="/settings">Settings</Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>

@@ -18,7 +18,8 @@ import {
   ParkingMeter,
   Truck,
   Settings as SettingsIcon,
-  ClipboardList
+  ClipboardList,
+  Landmark
 } from 'lucide-react';
 import AuthContext from '@/context/AuthContext';
 
@@ -62,7 +63,8 @@ const Sidebar: React.FC = () => {
   const navItems = [
     { icon: Home, label: 'Dashboard', href: '/' },
     { icon: Users, label: 'Residents', href: '/residents', roles: ['admin', 'staff'] as Array<'admin' | 'staff' | 'resident' | null> },
-    { icon: Building, label: 'Properties', href: '/properties' },
+    { icon: Building, label: 'Apartments', href: '/properties' },
+    { icon: Landmark, label: 'Wings', href: '/wings' },
     { icon: Bed, label: 'Amenities', href: '/amenities' },
     { icon: ParkingMeter, label: 'Parking', href: '/parking' },
     { icon: Truck, label: 'Delivery Records', href: '/delivery-records' },
