@@ -58,14 +58,15 @@ const Sidebar: React.FC = () => {
   const isMobile = useIsMobile();
   const { userRole } = useContext(AuthContext);
   
+  // Explicitly type the roles arrays with the correct union type
   const navItems = [
     { icon: Home, label: 'Dashboard', href: '/' },
-    { icon: Users, label: 'Residents', href: '/residents', roles: ['admin', 'staff'] },
+    { icon: Users, label: 'Residents', href: '/residents', roles: ['admin', 'staff'] as Array<'admin' | 'staff' | 'resident' | null> },
     { icon: Building, label: 'Properties', href: '/properties' },
     { icon: Bed, label: 'Amenities', href: '/amenities' },
     { icon: ParkingMeter, label: 'Parking', href: '/parking' },
     { icon: Truck, label: 'Delivery Records', href: '/delivery-records' },
-    { icon: Users, label: 'Staff', href: '/staff', roles: ['admin'] },
+    { icon: Users, label: 'Staff', href: '/staff', roles: ['admin'] as Array<'admin' | 'staff' | 'resident' | null> },
     { icon: ClipboardList, label: 'Housekeeping', href: '/housekeeping' },
     { icon: FileText, label: 'Notices', href: '/notices' },
     { icon: MessageSquare, label: 'Complaints', href: '/complaints' },
