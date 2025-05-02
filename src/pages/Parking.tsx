@@ -23,6 +23,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Parking as ParkingType, mockParking, mockResidents } from '@/types/database';
 import { Input } from '@/components/ui/input';
 import { ParkingMeter, Car, Clock } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const getStatusColor = (status: string) => {
   switch (status.toLowerCase()) {
@@ -39,6 +40,7 @@ const getStatusColor = (status: string) => {
 
 const Parking: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const { toast } = useToast();
   
   const { data: parking, isLoading, error } = useQuery({
     queryKey: ['parking'],
@@ -47,14 +49,28 @@ const Parking: React.FC = () => {
         const { data, error } = await supabase.from('parking').select('*');
         
         if (error) {
-          console.info('Supabase error:', error);
-          console.info('Using mock parking data');
+          console.error('Supabase error:', error);
+          toast({
+            title: "Database Error",
+            description: "Could not fetch parking data from database. Using mock data instead.",
+            variant: "destructive"
+          });
           return mockParking;
         }
         
-        return data as ParkingType[];
+        if (data && data.length > 0) {
+          return data as ParkingType[];
+        } else {
+          console.info('No parking data found in database, using mock data');
+          return mockParking;
+        }
       } catch (err) {
         console.error('Error fetching parking:', err);
+        toast({
+          title: "Error",
+          description: "An error occurred while fetching parking data. Using mock data.",
+          variant: "destructive"
+        });
         return mockParking;
       }
     }
@@ -84,7 +100,7 @@ const Parking: React.FC = () => {
           <div>
             <h2 className="text-3xl font-bold tracking-tight">Parking Management</h2>
             <p className="text-muted-foreground">
-              View and manage society parking spots
+              View and manage Nirvaan Heights parking spots
             </p>
           </div>
           <Button>Assign Parking</Button>
@@ -136,7 +152,7 @@ const Parking: React.FC = () => {
         <Card>
           <CardHeader>
             <CardTitle>Parking Directory</CardTitle>
-            <CardDescription>All society parking spots</CardDescription>
+            <CardDescription>All Nirvaan Heights parking spots</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="mb-4">
@@ -178,6 +194,13 @@ const Parking: React.FC = () => {
                         </TableCell>
                       </TableRow>
                     ))}
+                    {filteredParking?.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-6">
+                          No parking spots found matching your search
+                        </TableCell>
+                      </TableRow>
+                    )}
                   </TableBody>
                 </Table>
               </div>

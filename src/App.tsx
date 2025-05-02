@@ -24,7 +24,14 @@ import AdminLogin from "./pages/AdminLogin";
 import { useState } from "react";
 import AuthContext from "./context/AuthContext";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
