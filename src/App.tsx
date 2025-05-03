@@ -21,6 +21,7 @@ import Housekeeping from "./pages/Housekeeping";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import AdminLogin from "./pages/AdminLogin";
+import LoginPage from "./pages/LoginPage"; // New combined login page
 import { useState } from "react";
 import AuthContext from "./context/AuthContext";
 
@@ -46,6 +47,7 @@ const App = () => {
           <BrowserRouter>
             <Routes>
               <Route path="/login" element={<Login />} />
+              <Route path="/loginpage" element={<LoginPage />} /> {/* New combined login page */}
               <Route path="/admin-login" element={<AdminLogin />} />
               <Route path="/" element={<Index />} />
               <Route path="/residents" element={<Residents />} />

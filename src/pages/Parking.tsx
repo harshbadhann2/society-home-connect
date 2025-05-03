@@ -20,7 +20,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Parking as ParkingType, mockParking, mockResidents } from '@/types/database';
+import { Parking as ParkingType, mockParking } from '@/types/database';
 import { Input } from '@/components/ui/input';
 import { ParkingMeter, Car, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -42,7 +42,8 @@ const Parking: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const { toast } = useToast();
   
-  const { data: parking, isLoading, error } = useQuery({
+  // Fetch parking data
+  const { data: parking, isLoading: parkingLoading, error: parkingError } = useQuery({
     queryKey: ['parking'],
     queryFn: async () => {
       try {
@@ -76,10 +77,38 @@ const Parking: React.FC = () => {
     }
   });
 
+  // Fetch residents data for names
+  const { data: residents, isLoading: residentsLoading } = useQuery({
+    queryKey: ['residents'],
+    queryFn: async () => {
+      try {
+        const { data, error } = await supabase.from('residents').select('id, name');
+        
+        if (error) {
+          console.error('Supabase error fetching residents:', error);
+          return [];
+        }
+        
+        return data;
+      } catch (err) {
+        console.error('Error fetching residents:', err);
+        return [];
+      }
+    }
+  });
+
   const getResidentName = (residentId: number) => {
     if (residentId === 0) return 'N/A';
-    const resident = mockResidents.find(r => r.id === residentId);
-    return resident ? resident.name : 'Unknown';
+    
+    // Use residents from database if available
+    if (residents && residents.length > 0) {
+      const resident = residents.find((r: any) => r.id === residentId);
+      return resident ? resident.name : 'Unknown';
+    }
+    
+    // Fallback to mock residents if database fetch failed
+    const mockResident = mockResidents.find(r => r.id === residentId);
+    return mockResident ? mockResident.name : 'Unknown';
   };
 
   const filteredParking = parking?.filter(spot => {
@@ -98,6 +127,8 @@ const Parking: React.FC = () => {
   const totalSpots = parking?.length || 0;
   const occupiedSpots = parking?.filter(spot => (spot.status?.toLowerCase() || '') === 'occupied').length || 0;
   const availableSpots = parking?.filter(spot => (spot.status?.toLowerCase() || '') === 'available').length || 0;
+
+  const isLoading = parkingLoading || residentsLoading;
 
   return (
     <Layout>
@@ -172,7 +203,7 @@ const Parking: React.FC = () => {
 
             {isLoading ? (
               <div className="py-8 text-center">Loading parking data...</div>
-            ) : error ? (
+            ) : parkingError ? (
               <div className="py-8 text-center text-red-500">Error loading parking data</div>
             ) : (
               <div className="rounded-md border">
@@ -218,5 +249,49 @@ const Parking: React.FC = () => {
     </Layout>
   );
 };
+
+// Needed for fallback
+const mockResidents = [
+  {
+    id: 1,
+    name: 'John Doe',
+    apartment: 'A-101',
+    status: 'Owner',
+    contact: '555-1234',
+    email: 'john.doe@example.com',
+  },
+  {
+    id: 2,
+    name: 'Jane Smith',
+    apartment: 'B-202',
+    status: 'Tenant',
+    contact: '555-5678',
+    email: 'jane.smith@example.com',
+  },
+  {
+    id: 3,
+    name: 'Robert Johnson',
+    apartment: 'C-303',
+    status: 'Owner',
+    contact: '555-9012',
+    email: 'robert.j@example.com',
+  },
+  {
+    id: 4,
+    name: 'Emily Wong',
+    apartment: 'D-404',
+    status: 'Tenant',
+    contact: '555-3456',
+    email: 'emily.w@example.com',
+  },
+  {
+    id: 5,
+    name: 'Michael Brown',
+    apartment: 'A-105',
+    status: 'Owner',
+    contact: '555-7890',
+    email: 'michael.b@example.com',
+  }
+];
 
 export default Parking;
