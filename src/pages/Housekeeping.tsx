@@ -95,7 +95,7 @@ const HousekeepingPage: React.FC = () => {
   };
 
   const getStatusBadgeColor = (status: string) => {
-    switch (status.toLowerCase()) {
+    switch (status?.toLowerCase() || '') {
       case 'completed':
         return 'bg-green-100 text-green-800';
       case 'in progress':
@@ -110,16 +110,21 @@ const HousekeepingPage: React.FC = () => {
   };
 
   const filteredTasks = housekeepingTasks.filter(task => {
-    const matchesSearch = task.area.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          task.task_description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filterStatus === 'all' || task.status.toLowerCase() === filterStatus.toLowerCase();
+    const area = task.area?.toLowerCase() || '';
+    const description = task.task_description?.toLowerCase() || '';
+    const searchLower = searchTerm?.toLowerCase() || '';
+    const status = task.status?.toLowerCase() || '';
+    const filterLower = filterStatus?.toLowerCase() || 'all';
+    
+    const matchesSearch = area.includes(searchLower) || description.includes(searchLower);
+    const matchesFilter = filterLower === 'all' || status === filterLower;
     
     return matchesSearch && matchesFilter;
   });
 
-  const completedTasks = housekeepingTasks.filter(task => task.status.toLowerCase() === 'completed').length;
-  const inProgressTasks = housekeepingTasks.filter(task => task.status.toLowerCase() === 'in progress').length;
-  const overdueTasks = housekeepingTasks.filter(task => task.status.toLowerCase() === 'overdue').length;
+  const completedTasks = housekeepingTasks.filter(task => (task.status?.toLowerCase() || '') === 'completed').length;
+  const inProgressTasks = housekeepingTasks.filter(task => (task.status?.toLowerCase() || '') === 'in progress').length;
+  const overdueTasks = housekeepingTasks.filter(task => (task.status?.toLowerCase() || '') === 'overdue').length;
 
   return (
     <Layout>
@@ -240,17 +245,17 @@ const HousekeepingPage: React.FC = () => {
                 <TableBody>
                   {filteredTasks.map((task) => (
                     <TableRow key={task.id}>
-                      <TableCell className="font-medium">{task.area}</TableCell>
-                      <TableCell>{task.task_description}</TableCell>
+                      <TableCell className="font-medium">{task.area || 'Unknown Area'}</TableCell>
+                      <TableCell>{task.task_description || 'No description'}</TableCell>
                       <TableCell>{getStaffName(task.assigned_staff)}</TableCell>
-                      <TableCell>{task.frequency}</TableCell>
+                      <TableCell>{task.frequency || 'Not specified'}</TableCell>
                       <TableCell>
-                        <Badge className={getStatusBadgeColor(task.status)}>
-                          {task.status}
+                        <Badge className={getStatusBadgeColor(task.status || '')}>
+                          {task.status || 'Unknown'}
                         </Badge>
                       </TableCell>
-                      <TableCell>{task.last_completed}</TableCell>
-                      <TableCell>{task.next_scheduled}</TableCell>
+                      <TableCell>{task.last_completed || 'Never'}</TableCell>
+                      <TableCell>{task.next_scheduled || 'Not scheduled'}</TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="sm">Edit</Button>
                       </TableCell>
