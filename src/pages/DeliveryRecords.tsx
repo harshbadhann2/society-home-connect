@@ -22,7 +22,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { DeliveryRecord as DeliveryRecordType, mockDeliveryRecords, mockResidents } from '@/types/database';
 import { Input } from '@/components/ui/input';
-import { Truck, Package, Calendar } from 'lucide-react';
+import { Truck, Package, Calendar, Delivery } from 'lucide-react';
 
 const getStatusColor = (status: string) => {
   switch (status?.toLowerCase() || '') {
@@ -56,8 +56,18 @@ const DeliveryRecords: React.FC = () => {
           console.info('Supabase delivery records error:', recordsError);
           console.info('Using mock delivery records data');
           setDeliveryRecords(mockDeliveryRecords);
+          toast({
+            title: "Database Connection Issue",
+            description: "Using sample data for delivery records.",
+            variant: "default",
+          });
         } else {
           setDeliveryRecords(recordsData || mockDeliveryRecords);
+          toast({
+            title: "Data Loaded Successfully",
+            description: "Displaying real delivery data from database.",
+            variant: "default",
+          });
         }
         
         // Fetch residents
@@ -112,8 +122,8 @@ const DeliveryRecords: React.FC = () => {
   });
 
   const totalDeliveries = deliveryRecords?.length || 0;
-  const deliveredCount = deliveryRecords?.filter(record => record.status?.toLowerCase() === 'delivered').length || 0;
-  const pendingCount = deliveryRecords?.filter(record => record.status?.toLowerCase() !== 'delivered').length || 0;
+  const deliveredCount = deliveryRecords?.filter(record => (record.status?.toLowerCase() || '') === 'delivered').length || 0;
+  const pendingCount = deliveryRecords?.filter(record => (record.status?.toLowerCase() || '') !== 'delivered').length || 0;
 
   return (
     <Layout>
@@ -125,7 +135,9 @@ const DeliveryRecords: React.FC = () => {
               Track package and courier deliveries for Nirvaan Heights
             </p>
           </div>
-          <Button>Add Delivery</Button>
+          <Button>
+            <Delivery className="mr-2 h-4 w-4" /> Add Delivery
+          </Button>
         </div>
 
         {/* Delivery statistics */}
@@ -206,12 +218,12 @@ const DeliveryRecords: React.FC = () => {
                     {filteredRecords && filteredRecords.length > 0 ? (
                       filteredRecords.map((record) => (
                         <TableRow key={record.id}>
-                          <TableCell className="font-medium">{record.package_id}</TableCell>
+                          <TableCell className="font-medium">{record.package_id || 'Unknown'}</TableCell>
                           <TableCell>{getResidentName(record.resident_id)}</TableCell>
                           <TableCell className="hidden md:table-cell">{getResidentApartment(record.resident_id)}</TableCell>
-                          <TableCell className="hidden md:table-cell">{record.delivery_date}</TableCell>
-                          <TableCell className="hidden md:table-cell">{record.delivery_time}</TableCell>
-                          <TableCell>{record.courier_name}</TableCell>
+                          <TableCell className="hidden md:table-cell">{record.delivery_date || 'Not specified'}</TableCell>
+                          <TableCell className="hidden md:table-cell">{record.delivery_time || 'Not specified'}</TableCell>
+                          <TableCell>{record.courier_name || 'Unknown'}</TableCell>
                           <TableCell>
                             <Badge variant="outline" className={getStatusColor(record.status || '')}>
                               {record.status || 'Unknown'}

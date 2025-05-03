@@ -31,7 +31,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { mockHousekeeping, mockStaff } from '@/types/database';
 import { Housekeeping, Staff } from '@/types/database';
-import { ClipboardCheck, ClipboardList, Clock } from 'lucide-react';
+import { ClipboardCheck, ClipboardList, Clock, Housekeeping as HousekeepingIcon } from 'lucide-react';
 
 const HousekeepingPage: React.FC = () => {
   const [housekeepingTasks, setHousekeepingTasks] = useState<Housekeeping[]>([]);
@@ -44,7 +44,7 @@ const HousekeepingPage: React.FC = () => {
   useEffect(() => {
     const fetchHousekeepingTasks = async () => {
       try {
-        // Try to fetch from Supabase
+        // Fetch from Supabase
         const { data: housekeepingData, error: housekeepingError } = await supabase
           .from('housekeeping')
           .select('*');
@@ -57,8 +57,18 @@ const HousekeepingPage: React.FC = () => {
           console.info('Supabase housekeeping error:', housekeepingError);
           console.info('Falling back to mock housekeeping data');
           setHousekeepingTasks(mockHousekeeping);
+          toast({
+            title: "Database Connection Issue",
+            description: "Using sample data for housekeeping tasks.",
+            variant: "default",
+          });
         } else {
           setHousekeepingTasks(housekeepingData || mockHousekeeping);
+          toast({
+            title: "Data Loaded Successfully",
+            description: "Displaying real housekeeping data from database.",
+            variant: "default",
+          });
         }
 
         if (staffError) {
@@ -135,7 +145,7 @@ const HousekeepingPage: React.FC = () => {
             <p className="text-muted-foreground">Manage and track housekeeping tasks for Nirvaan Heights</p>
           </div>
           <Button className="mt-4 md:mt-0">
-            Add New Task
+            <HousekeepingIcon className="mr-2 h-4 w-4" /> Add New Task
           </Button>
         </div>
 
