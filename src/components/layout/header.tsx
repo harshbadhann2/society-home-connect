@@ -1,9 +1,9 @@
 
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, Menu, User } from 'lucide-react';
+import { Bell, Menu, User, Moon, Sun } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useSidebarContext } from '../providers/sidebar-provider';
 import {
@@ -15,6 +15,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import AuthContext from '@/context/AuthContext';
+import { mockResidents } from '@/types/database';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 
 const Header: React.FC = () => {
   const isMobile = useIsMobile();
@@ -25,6 +27,18 @@ const Header: React.FC = () => {
     { id: 2, message: "Payment reminder", time: "1 hour ago" },
     { id: 3, message: "Maintenance scheduled", time: "Yesterday" }
   ]);
+
+  // Get current user name (using mock data for demo)
+  const [currentUser, setCurrentUser] = useState(mockResidents[0]);
+  const [timeOfDay, setTimeOfDay] = useState<string>("");
+  
+  useEffect(() => {
+    // Get time of day for greeting
+    const hour = new Date().getHours();
+    if (hour < 12) setTimeOfDay("Good Morning");
+    else if (hour < 17) setTimeOfDay("Good Afternoon");
+    else setTimeOfDay("Good Evening");
+  }, []);
   
   const handleLogout = () => {
     setIsAuthenticated(false);
@@ -60,7 +74,16 @@ const Header: React.FC = () => {
           <span className="text-lg font-bold tracking-tight">Nirvaan Heights</span>
         </Link>
         
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-4">
+          {/* Theme toggle */}
+          <ThemeToggle />
+
+          {/* User greeting - show on tablet and larger */}
+          <div className="hidden md:block text-sm font-medium">
+            <span className="text-muted-foreground">{timeOfDay}! </span>
+            <span className="text-foreground">Mr. {currentUser.name.split(' ')[0]}</span>
+          </div>
+          
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="icon" className="relative">
@@ -94,12 +117,12 @@ const Header: React.FC = () => {
             <DropdownMenuTrigger asChild>
               <Avatar className="cursor-pointer">
                 <AvatarFallback className="bg-secondary text-secondary-foreground">
-                  <User className="h-5 w-5" />
+                  {currentUser.name.charAt(0)}
                 </AvatarFallback>
               </Avatar>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuLabel>{currentUser.name}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <Link to="/profile">Profile</Link>

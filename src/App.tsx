@@ -24,6 +24,7 @@ import AdminLogin from "./pages/AdminLogin";
 import LoginPage from "./pages/LoginPage"; // Combined login page
 import { useState } from "react";
 import AuthContext from "./context/AuthContext";
+import { ThemeProvider } from "./components/providers/theme-provider";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -39,45 +40,47 @@ const App = () => {
   const [userRole, setUserRole] = useState<'admin' | 'staff' | 'resident' | null>(null);
   
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthContext.Provider value={{ isAuthenticated, setIsAuthenticated, userRole, setUserRole }}>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              {/* Redirect root to login page */}
-              <Route path="/" element={isAuthenticated ? <Index /> : <Navigate to="/login" replace />} />
-              
-              {/* Main login page (combined) */}
-              <Route path="/login" element={<LoginPage />} />
-              
-              {/* Legacy login pages - redirect to main login */}
-              <Route path="/admin-login" element={<Navigate to="/login" replace state={{ defaultTab: 'admin' }} />} />
-              <Route path="/loginpage" element={<Navigate to="/login" replace />} />
-              
-              {/* Protected routes */}
-              <Route path="/residents" element={<Residents />} />
-              <Route path="/properties" element={<Properties />} />
-              <Route path="/wings" element={<Wings />} />
-              <Route path="/amenities" element={<Amenities />} />
-              <Route path="/parking" element={<Parking />} />
-              <Route path="/delivery-records" element={<DeliveryRecords />} />
-              <Route path="/staff" element={<Staff />} />
-              <Route path="/notices" element={<Notices />} />
-              <Route path="/complaints" element={<Complaints />} />
-              <Route path="/payments" element={<Payments />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/housekeeping" element={<Housekeeping />} />
-              
-              {/* Catch-all route */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </AuthContext.Provider>
-    </QueryClientProvider>
+    <ThemeProvider defaultTheme="light">
+      <QueryClientProvider client={queryClient}>
+        <AuthContext.Provider value={{ isAuthenticated, setIsAuthenticated, userRole, setUserRole }}>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                {/* Redirect root to login page */}
+                <Route path="/" element={isAuthenticated ? <Index /> : <Navigate to="/login" replace />} />
+                
+                {/* Main login page (combined) */}
+                <Route path="/login" element={<LoginPage />} />
+                
+                {/* Legacy login pages - redirect to main login */}
+                <Route path="/admin-login" element={<Navigate to="/login" replace state={{ defaultTab: 'admin' }} />} />
+                <Route path="/loginpage" element={<Navigate to="/login" replace />} />
+                
+                {/* Protected routes */}
+                <Route path="/residents" element={<Residents />} />
+                <Route path="/properties" element={<Properties />} />
+                <Route path="/wings" element={<Wings />} />
+                <Route path="/amenities" element={<Amenities />} />
+                <Route path="/parking" element={<Parking />} />
+                <Route path="/delivery-records" element={<DeliveryRecords />} />
+                <Route path="/staff" element={<Staff />} />
+                <Route path="/notices" element={<Notices />} />
+                <Route path="/complaints" element={<Complaints />} />
+                <Route path="/payments" element={<Payments />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/housekeeping" element={<Housekeeping />} />
+                
+                {/* Catch-all route */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </AuthContext.Provider>
+      </QueryClientProvider>
+    </ThemeProvider>
   );
 };
 

@@ -63,8 +63,8 @@ const Sidebar: React.FC = () => {
   const navItems = [
     { icon: Home, label: 'Dashboard', href: '/' },
     { icon: Users, label: 'Residents', href: '/residents', roles: ['admin', 'staff'] as Array<'admin' | 'staff' | 'resident' | null> },
-    { icon: Building, label: 'Apartments', href: '/properties' },
-    { icon: Landmark, label: 'Wings', href: '/wings' },
+    { icon: Building, label: 'Manage Properties', href: '/properties' },
+    { icon: Landmark, label: 'Manage Wings', href: '/wings' },
     { icon: Bed, label: 'Amenities', href: '/amenities' },
     { icon: ParkingMeter, label: 'Parking', href: '/parking' },
     { icon: Truck, label: 'Delivery Records', href: '/delivery-records' },

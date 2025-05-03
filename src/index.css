@@ -99,3 +99,28 @@
     background: linear-gradient(to right, #0073ff, #00a5cf);
   }
 }
+
+@layer utilities {
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .glass-morphism {
+    @apply backdrop-blur-xl dark:bg-black/30 bg-white/80 dark:border-white/10 border-black/10;
+  }
+  
+  .text-balance {
+    text-wrap: balance;
+  }
+}
