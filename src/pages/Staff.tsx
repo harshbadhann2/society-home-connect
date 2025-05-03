@@ -24,7 +24,9 @@ import { Staff as StaffType, mockStaff } from '@/types/database';
 import { Input } from '@/components/ui/input';
 import { Users, UserPlus, Calendar } from 'lucide-react';
 
-const getStatusColor = (status: string) => {
+const getStatusColor = (status: string | undefined) => {
+  if (!status) return 'bg-gray-100 text-gray-800 border-gray-200';
+  
   switch (status.toLowerCase()) {
     case 'active':
       return 'bg-green-100 text-green-800 border-green-200';
@@ -61,15 +63,15 @@ const Staff: React.FC = () => {
   });
 
   const filteredStaff = staff?.filter(member => 
-    member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    member.position.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    member.contact.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    member.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    member.status.toLowerCase().includes(searchTerm.toLowerCase())
+    (member?.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (member?.position?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (member?.contact?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (member?.email?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+    (member?.status?.toLowerCase() || '').includes(searchTerm.toLowerCase())
   );
 
   const totalStaff = staff?.length || 0;
-  const activeStaff = staff?.filter(member => member.status.toLowerCase() === 'active').length || 0;
+  const activeStaff = staff?.filter(member => member?.status?.toLowerCase() === 'active').length || 0;
 
   return (
     <Layout>
@@ -164,14 +166,14 @@ const Staff: React.FC = () => {
                   <TableBody>
                     {filteredStaff?.map((member) => (
                       <TableRow key={member.id}>
-                        <TableCell className="font-medium">{member.name}</TableCell>
-                        <TableCell>{member.position}</TableCell>
-                        <TableCell className="hidden md:table-cell">{member.contact}</TableCell>
-                        <TableCell className="hidden md:table-cell">{member.email}</TableCell>
-                        <TableCell className="hidden md:table-cell">{member.joining_date}</TableCell>
+                        <TableCell className="font-medium">{member?.name || 'N/A'}</TableCell>
+                        <TableCell>{member?.position || 'N/A'}</TableCell>
+                        <TableCell className="hidden md:table-cell">{member?.contact || 'N/A'}</TableCell>
+                        <TableCell className="hidden md:table-cell">{member?.email || 'N/A'}</TableCell>
+                        <TableCell className="hidden md:table-cell">{member?.joining_date || 'N/A'}</TableCell>
                         <TableCell>
-                          <Badge variant="outline" className={getStatusColor(member.status)}>
-                            {member.status}
+                          <Badge variant="outline" className={getStatusColor(member?.status)}>
+                            {member?.status || 'Unknown'}
                           </Badge>
                         </TableCell>
                       </TableRow>
