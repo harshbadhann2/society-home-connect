@@ -1,6 +1,6 @@
 
-import React, { useState, useContext } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useContext, useEffect } from 'react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -16,16 +16,31 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { mockUsers } from '@/types/database';
-import { User, Building, Shield } from 'lucide-react';
+import { User, Building, Shield, Key } from 'lucide-react';
 import AuthContext from '@/context/AuthContext';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+
+interface LocationState {
+  defaultTab?: string;
+}
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [defaultTab, setDefaultTab] = useState('resident');
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const { setIsAuthenticated, setUserRole } = useContext(AuthContext);
+
+  useEffect(() => {
+    // Check if there's a default tab in the location state
+    const state = location.state as LocationState;
+    if (state?.defaultTab) {
+      setDefaultTab(state.defaultTab);
+    }
+  }, [location]);
 
   const handleResidentLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -227,7 +242,7 @@ const LoginPage: React.FC = () => {
         </CardHeader>
         
         <CardContent>
-          <Tabs defaultValue="resident" className="w-full">
+          <Tabs defaultValue={defaultTab} className="w-full">
             <TabsList className="grid grid-cols-3 mb-6">
               <TabsTrigger value="resident">
                 <User className="h-4 w-4 mr-2" />
@@ -243,6 +258,13 @@ const LoginPage: React.FC = () => {
               </TabsTrigger>
             </TabsList>
             
+            <Alert className="mb-4">
+              <Key className="h-4 w-4" />
+              <AlertDescription>
+                User accounts from your database have been integrated. You can log in using the email addresses shown below.
+              </AlertDescription>
+            </Alert>
+            
             <TabsContent value="resident">
               <form onSubmit={handleResidentLogin} className="space-y-4">
                 <div className="space-y-2">
@@ -250,7 +272,7 @@ const LoginPage: React.FC = () => {
                   <Input 
                     id="resident-email" 
                     type="email" 
-                    placeholder="resident@example.com" 
+                    placeholder="rajesh.sharma@example.com" 
                     required 
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -265,7 +287,8 @@ const LoginPage: React.FC = () => {
                   </div>
                   <Input 
                     id="resident-password" 
-                    type="password" 
+                    type="password"
+                    placeholder="resident123" 
                     required 
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -274,8 +297,15 @@ const LoginPage: React.FC = () => {
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "Logging in..." : "Login as Resident"}
                 </Button>
-                <div className="text-center text-sm text-muted-foreground mt-2">
-                  <p>Default access: resident@example.com / resident123</p>
+                <div className="text-center text-sm space-y-1 text-muted-foreground mt-2">
+                  <p>Available resident accounts:</p>
+                  <div className="grid grid-cols-2 gap-1 text-xs">
+                    <div>rajesh.sharma@example.com</div>
+                    <div>amit.singh@example.com</div>
+                    <div>ravi.mehta@example.com</div>
+                    <div>neha.verma@example.com</div>
+                  </div>
+                  <p className="pt-1">Password for all accounts: resident123</p>
                 </div>
               </form>
             </TabsContent>
@@ -287,7 +317,7 @@ const LoginPage: React.FC = () => {
                   <Input 
                     id="staff-email" 
                     type="email" 
-                    placeholder="staff@example.com" 
+                    placeholder="sunil.kumar@example.com" 
                     required 
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -302,7 +332,8 @@ const LoginPage: React.FC = () => {
                   </div>
                   <Input 
                     id="staff-password" 
-                    type="password" 
+                    type="password"
+                    placeholder="staff123" 
                     required 
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -311,8 +342,14 @@ const LoginPage: React.FC = () => {
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "Logging in..." : "Login as Staff"}
                 </Button>
-                <div className="text-center text-sm text-muted-foreground mt-2">
-                  <p>Default access: staff@example.com / staff123</p>
+                <div className="text-center text-sm space-y-1 text-muted-foreground mt-2">
+                  <p>Available staff accounts:</p>
+                  <div className="grid grid-cols-1 gap-1 text-xs">
+                    <div>sunil.kumar@example.com (Cleaner)</div>
+                    <div>pooja.yadav@example.com (Security)</div>
+                    <div>rajeev.kumar@example.com (Gardener)</div>
+                  </div>
+                  <p className="pt-1">Password for all accounts: staff123</p>
                 </div>
               </form>
             </TabsContent>
@@ -324,7 +361,7 @@ const LoginPage: React.FC = () => {
                   <Input 
                     id="admin-email" 
                     type="email" 
-                    placeholder="admin@example.com" 
+                    placeholder="admin@nirvaanheights.com" 
                     required 
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -339,7 +376,8 @@ const LoginPage: React.FC = () => {
                   </div>
                   <Input 
                     id="admin-password" 
-                    type="password" 
+                    type="password"
+                    placeholder="admin123" 
                     required 
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -349,7 +387,8 @@ const LoginPage: React.FC = () => {
                   {isLoading ? "Authenticating..." : "Login as Administrator"}
                 </Button>
                 <div className="text-center text-sm text-muted-foreground mt-2">
-                  <p>Default access: admin@example.com / admin123</p>
+                  <p>Admin account: admin@nirvaanheights.com</p>
+                  <p>Password: admin123</p>
                 </div>
               </form>
             </TabsContent>
