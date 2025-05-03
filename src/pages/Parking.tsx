@@ -25,8 +25,8 @@ import { Input } from '@/components/ui/input';
 import { ParkingMeter, Car, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-const getStatusColor = (status: string) => {
-  switch (status.toLowerCase()) {
+const getStatusColor = (status: string | undefined) => {
+  switch (status?.toLowerCase() || '') {
     case 'occupied':
       return 'bg-blue-100 text-blue-800 border-blue-200';
     case 'available':
@@ -82,16 +82,22 @@ const Parking: React.FC = () => {
     return resident ? resident.name : 'Unknown';
   };
 
-  const filteredParking = parking?.filter(spot => 
-    spot.spot_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    spot.vehicle_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    getResidentName(spot.resident_id).toLowerCase().includes(searchTerm.toLowerCase()) ||
-    spot.status.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredParking = parking?.filter(spot => {
+    const spotNumber = spot.spot_number?.toLowerCase() || '';
+    const vehicleNumber = spot.vehicle_number?.toLowerCase() || '';
+    const residentName = getResidentName(spot.resident_id)?.toLowerCase() || '';
+    const status = spot.status?.toLowerCase() || '';
+    const searchTermLower = searchTerm?.toLowerCase() || '';
+    
+    return spotNumber.includes(searchTermLower) ||
+           vehicleNumber.includes(searchTermLower) ||
+           residentName.includes(searchTermLower) ||
+           status.includes(searchTermLower);
+  });
 
   const totalSpots = parking?.length || 0;
-  const occupiedSpots = parking?.filter(spot => spot.status.toLowerCase() === 'occupied').length || 0;
-  const availableSpots = parking?.filter(spot => spot.status.toLowerCase() === 'available').length || 0;
+  const occupiedSpots = parking?.filter(spot => (spot.status?.toLowerCase() || '') === 'occupied').length || 0;
+  const availableSpots = parking?.filter(spot => (spot.status?.toLowerCase() || '') === 'available').length || 0;
 
   return (
     <Layout>
@@ -181,23 +187,24 @@ const Parking: React.FC = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredParking?.map((spot) => (
-                      <TableRow key={spot.id}>
-                        <TableCell className="font-medium">{spot.spot_number}</TableCell>
-                        <TableCell>{spot.vehicle_type}</TableCell>
-                        <TableCell className="hidden md:table-cell">{spot.vehicle_number || 'N/A'}</TableCell>
-                        <TableCell className="hidden md:table-cell">{getResidentName(spot.resident_id)}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className={getStatusColor(spot.status)}>
-                            {spot.status}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {filteredParking?.length === 0 && (
+                    {filteredParking && filteredParking.length > 0 ? (
+                      filteredParking.map((spot) => (
+                        <TableRow key={spot.id}>
+                          <TableCell className="font-medium">{spot.spot_number || 'N/A'}</TableCell>
+                          <TableCell>{spot.vehicle_type || 'N/A'}</TableCell>
+                          <TableCell className="hidden md:table-cell">{spot.vehicle_number || 'N/A'}</TableCell>
+                          <TableCell className="hidden md:table-cell">{getResidentName(spot.resident_id)}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className={getStatusColor(spot.status)}>
+                              {spot.status || 'Unknown'}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
                       <TableRow>
                         <TableCell colSpan={5} className="text-center py-6">
-                          No parking spots found matching your search
+                          {searchTerm ? 'No parking spots found matching your search' : 'No parking spots available'}
                         </TableCell>
                       </TableRow>
                     )}
