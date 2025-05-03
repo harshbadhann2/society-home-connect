@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import Layout from '@/components/layout/layout';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,6 +11,18 @@ import {
 } from '@/components/ui/card';
 import { Plus, FileText, AlertCircle, Calendar } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { CreateNoticeDialog } from '@/components/dialogs/CreateNoticeDialog';
+
+interface Notice {
+  id: number;
+  title: string;
+  date: string;
+  category: string;
+  priority: string;
+  content: string;
+}
 
 // Mock notices data
 const mockNotices = [
@@ -62,6 +74,31 @@ const getPriorityColor = (priority: string) => {
 };
 
 const Notices: React.FC = () => {
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+
+  const { data: notices, isLoading, error, refetch } = useQuery({
+    queryKey: ['notices'],
+    queryFn: async () => {
+      try {
+        const { data, error } = await supabase.from('notices').select('*');
+        
+        if (error) {
+          console.error('Supabase error:', error);
+          return mockNotices;
+        }
+        
+        return (data || []) as Notice[];
+      } catch (err) {
+        console.error('Error fetching notices:', err);
+        return mockNotices;
+      }
+    }
+  });
+
+  const highPriorityCount = notices?.filter(notice => notice.priority === 'high').length || 0;
+  const maintenanceCount = notices?.filter(notice => notice.category === 'Maintenance').length || 0;
+  const upcomingCount = notices?.length || 0;
+
   return (
     <Layout>
       <div className="space-y-6 animate-fade-in">
@@ -72,7 +109,7 @@ const Notices: React.FC = () => {
               View and manage society notices and announcements
             </p>
           </div>
-          <Button>
+          <Button onClick={() => setCreateDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Create Notice
           </Button>
         </div>
@@ -87,7 +124,7 @@ const Notices: React.FC = () => {
             <CardContent>
               <div className="flex items-center">
                 <AlertCircle className="h-8 w-8 text-red-500 mr-2" />
-                <span className="text-2xl font-bold">2</span>
+                <span className="text-2xl font-bold">{highPriorityCount}</span>
               </div>
             </CardContent>
           </Card>
@@ -100,7 +137,7 @@ const Notices: React.FC = () => {
             <CardContent>
               <div className="flex items-center">
                 <FileText className="h-8 w-8 text-primary mr-2" />
-                <span className="text-2xl font-bold">1</span>
+                <span className="text-2xl font-bold">{maintenanceCount}</span>
               </div>
             </CardContent>
           </Card>
@@ -113,7 +150,7 @@ const Notices: React.FC = () => {
             <CardContent>
               <div className="flex items-center">
                 <Calendar className="h-8 w-8 text-primary mr-2" />
-                <span className="text-2xl font-bold">4</span>
+                <span className="text-2xl font-bold">{upcomingCount}</span>
               </div>
             </CardContent>
           </Card>
@@ -126,34 +163,46 @@ const Notices: React.FC = () => {
             <CardDescription>Latest announcements for residents</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {mockNotices.map((notice) => (
-                <div
-                  key={notice.id}
-                  className="flex flex-col md:flex-row md:items-center justify-between p-4 border rounded-md hover:bg-muted/50 transition-colors"
-                >
-                  <div className="space-y-1">
-                    <div className="font-medium">{notice.title}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {new Date(notice.date).toLocaleDateString()}
+            {isLoading ? (
+              <div className="py-8 text-center">Loading notices...</div>
+            ) : error ? (
+              <div className="py-8 text-center text-red-500">Error loading notices</div>
+            ) : (
+              <div className="space-y-4">
+                {notices?.map((notice) => (
+                  <div
+                    key={notice.id}
+                    className="flex flex-col md:flex-row md:items-center justify-between p-4 border rounded-md hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="space-y-1">
+                      <div className="font-medium">{notice.title}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {new Date(notice.date).toLocaleDateString()}
+                      </div>
+                      <p className="text-sm mt-2">{notice.content}</p>
                     </div>
-                    <p className="text-sm mt-2">{notice.content}</p>
+                    <div className="flex items-center mt-2 md:mt-0 gap-2">
+                      <Badge variant="outline">{notice.category}</Badge>
+                      <Badge
+                        variant="outline"
+                        className={getPriorityColor(notice.priority)}
+                      >
+                        {notice.priority}
+                      </Badge>
+                    </div>
                   </div>
-                  <div className="flex items-center mt-2 md:mt-0 gap-2">
-                    <Badge variant="outline">{notice.category}</Badge>
-                    <Badge
-                      variant="outline"
-                      className={getPriorityColor(notice.priority)}
-                    >
-                      {notice.priority}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
+
+      <CreateNoticeDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        onAdd={refetch}
+      />
     </Layout>
   );
 };

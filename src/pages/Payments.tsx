@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import Layout from '@/components/layout/layout';
 import { Button } from '@/components/ui/button';
 import {
@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Plus, DollarSign, TrendingUp, TrendingDown } from 'lucide-react';
+import { Plus, IndianRupee, TrendingUp, TrendingDown } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -19,63 +19,76 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { RecordPaymentDialog } from '@/components/dialogs/RecordPaymentDialog';
+
+// Payment interface
+interface Payment {
+  id: number;
+  description: string;
+  resident_id: number;
+  apartment?: string;
+  amount: number;
+  date: string;
+  status: string;
+  payment_method?: string;
+  currency: string;
+}
 
 // Mock payments data
 const mockPayments = [
   {
     id: 1,
     description: 'Maintenance Fee - May 2025',
-    resident: 'John Doe',
+    resident_id: 1,
     apartment: 'A-101',
     amount: 250.00,
     date: '2025-05-02',
     status: 'Paid',
+    currency: 'INR',
   },
   {
     id: 2,
     description: 'Maintenance Fee - May 2025',
-    resident: 'Jane Smith',
+    resident_id: 2,
     apartment: 'B-202',
     amount: 250.00,
     date: '2025-05-01',
     status: 'Paid',
+    currency: 'INR',
   },
   {
     id: 3,
     description: 'Maintenance Fee - May 2025',
-    resident: 'Robert Johnson',
+    resident_id: 3,
     apartment: 'C-303',
     amount: 250.00,
     date: '2025-05-03',
     status: 'Pending',
+    currency: 'INR',
   },
   {
     id: 4,
     description: 'Maintenance Fee - May 2025',
-    resident: 'Emily Wong',
+    resident_id: 4,
     apartment: 'D-404',
     amount: 250.00,
     date: '2025-05-02',
     status: 'Pending',
+    currency: 'INR',
   },
   {
     id: 5,
     description: 'Community Hall Booking',
-    resident: 'John Doe',
+    resident_id: 1,
     apartment: 'A-101',
     amount: 100.00,
     date: '2025-04-28',
     status: 'Paid',
+    currency: 'INR',
   },
 ];
-
-// Mock payment summary
-const paymentSummary = {
-  totalCollected: 600,
-  pendingAmount: 500,
-  maintenanceFee: 250,
-  collectionRate: 75,
-};
 
 const getStatusColor = (status: string) => {
   switch (status.toLowerCase()) {
@@ -91,6 +104,83 @@ const getStatusColor = (status: string) => {
 };
 
 const Payments: React.FC = () => {
+  const [recordPaymentDialogOpen, setRecordPaymentDialogOpen] = useState(false);
+
+  const { data: payments, isLoading, error, refetch } = useQuery({
+    queryKey: ['payments'],
+    queryFn: async () => {
+      try {
+        const { data, error } = await supabase.from('payments').select('*').order('date', { ascending: false });
+        
+        if (error) {
+          console.error('Supabase error:', error);
+          return mockPayments;
+        }
+        
+        return (data as Payment[]) || mockPayments;
+      } catch (err) {
+        console.error('Error fetching payments:', err);
+        return mockPayments;
+      }
+    }
+  });
+
+  const { data: residents } = useQuery({
+    queryKey: ['residents'],
+    queryFn: async () => {
+      try {
+        const { data, error } = await supabase.from('residents').select('id, name, apartment');
+        
+        if (error) {
+          console.error('Supabase error fetching residents:', error);
+          return [];
+        }
+        
+        return data;
+      } catch (err) {
+        console.error('Error fetching residents:', err);
+        return [];
+      }
+    }
+  });
+
+  const getResidentName = (residentId: number) => {
+    if (residents && residents.length > 0) {
+      const resident = residents.find((r: any) => r.id === residentId);
+      return resident ? resident.name : 'Unknown';
+    }
+    return 'Unknown';
+  };
+
+  const getResidentApartment = (residentId: number) => {
+    if (residents && residents.length > 0) {
+      const resident = residents.find((r: any) => r.id === residentId);
+      return resident ? resident.apartment : 'N/A';
+    }
+    return 'N/A';
+  };
+
+  // Calculate payment statistics
+  const paidPayments = payments?.filter(p => p.status.toLowerCase() === 'paid') || [];
+  const totalCollected = paidPayments.reduce((sum, payment) => sum + payment.amount, 0);
+  
+  const pendingPayments = payments?.filter(p => p.status.toLowerCase() === 'pending') || [];
+  const pendingAmount = pendingPayments.reduce((sum, payment) => sum + payment.amount, 0);
+  
+  const maintenanceFee = 250; // Assumption based on mock data
+  
+  const totalApartments = residents?.length || 0;
+  const paidApartments = new Set(paidPayments.map(p => p.resident_id)).size;
+  const collectionRate = totalApartments > 0 ? Math.round((paidApartments / totalApartments) * 100) : 0;
+
+  // Payment summary
+  const paymentSummary = {
+    totalCollected,
+    pendingAmount,
+    maintenanceFee,
+    collectionRate,
+  };
+
   return (
     <Layout>
       <div className="space-y-6 animate-fade-in">
@@ -101,7 +191,7 @@ const Payments: React.FC = () => {
               Track society fee payments and finances
             </p>
           </div>
-          <Button>
+          <Button onClick={() => setRecordPaymentDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Record Payment
           </Button>
         </div>
@@ -115,8 +205,8 @@ const Payments: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="flex items-center">
-                <DollarSign className="h-8 w-8 text-green-500 mr-2" />
-                <span className="text-2xl font-bold">${paymentSummary.totalCollected}</span>
+                <IndianRupee className="h-8 w-8 text-green-500 mr-2" />
+                <span className="text-2xl font-bold">₹{paymentSummary.totalCollected}</span>
               </div>
             </CardContent>
           </Card>
@@ -129,7 +219,7 @@ const Payments: React.FC = () => {
             <CardContent>
               <div className="flex items-center">
                 <TrendingDown className="h-8 w-8 text-yellow-500 mr-2" />
-                <span className="text-2xl font-bold">${paymentSummary.pendingAmount}</span>
+                <span className="text-2xl font-bold">₹{paymentSummary.pendingAmount}</span>
               </div>
             </CardContent>
           </Card>
@@ -141,8 +231,8 @@ const Payments: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="flex items-center">
-                <DollarSign className="h-8 w-8 text-primary mr-2" />
-                <span className="text-2xl font-bold">${paymentSummary.maintenanceFee}</span>
+                <IndianRupee className="h-8 w-8 text-primary mr-2" />
+                <span className="text-2xl font-bold">₹{paymentSummary.maintenanceFee}</span>
               </div>
             </CardContent>
           </Card>
@@ -168,41 +258,55 @@ const Payments: React.FC = () => {
             <CardDescription>Last 30 days of payment activity</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Description</TableHead>
-                    <TableHead>Resident</TableHead>
-                    <TableHead className="hidden md:table-cell">Apartment</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead className="hidden md:table-cell">Date</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {mockPayments.map((payment) => (
-                    <TableRow key={payment.id}>
-                      <TableCell className="font-medium">{payment.description}</TableCell>
-                      <TableCell>{payment.resident}</TableCell>
-                      <TableCell className="hidden md:table-cell">{payment.apartment}</TableCell>
-                      <TableCell>${payment.amount.toFixed(2)}</TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        {new Date(payment.date).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={getStatusColor(payment.status)}>
-                          {payment.status}
-                        </Badge>
-                      </TableCell>
+            {isLoading ? (
+              <div className="py-8 text-center">Loading payment data...</div>
+            ) : error ? (
+              <div className="py-8 text-center text-red-500">Error loading payment data</div>
+            ) : (
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Resident</TableHead>
+                      <TableHead className="hidden md:table-cell">Apartment</TableHead>
+                      <TableHead>Amount</TableHead>
+                      <TableHead className="hidden md:table-cell">Date</TableHead>
+                      <TableHead>Status</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {payments?.map((payment) => (
+                      <TableRow key={payment.id}>
+                        <TableCell className="font-medium">{payment.description}</TableCell>
+                        <TableCell>{getResidentName(payment.resident_id)}</TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          {payment.apartment || getResidentApartment(payment.resident_id)}
+                        </TableCell>
+                        <TableCell>₹{payment.amount.toFixed(2)}</TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          {new Date(payment.date).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={getStatusColor(payment.status)}>
+                            {payment.status}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
+
+      <RecordPaymentDialog 
+        open={recordPaymentDialogOpen}
+        onOpenChange={setRecordPaymentDialogOpen}
+        onAdd={refetch}
+      />
     </Layout>
   );
 };

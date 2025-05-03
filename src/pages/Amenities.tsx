@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import Layout from '@/components/layout/layout';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,6 +23,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Amenity, mockAmenities } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
+import { BookAmenityDialog } from '@/components/dialogs/BookAmenityDialog';
 
 const getStatusColor = (status: string) => {
   switch (status.toLowerCase()) {
@@ -68,9 +69,21 @@ const mockBookings = [
   },
 ];
 
+interface Booking {
+  id: number;
+  amenity_id: number;
+  resident_id: number;
+  date: string;
+  time_slot: string;
+  purpose: string;
+}
+
 const Amenities: React.FC = () => {
   const { toast } = useToast();
-  const { data: amenities, isLoading, error } = useQuery({
+  const [bookDialogOpen, setBookDialogOpen] = useState(false);
+  const [selectedAmenityId, setSelectedAmenityId] = useState<number | null>(null);
+
+  const { data: amenities, isLoading, error, refetch } = useQuery({
     queryKey: ['amenities'],
     queryFn: async () => {
       try {
@@ -90,11 +103,76 @@ const Amenities: React.FC = () => {
     }
   });
 
-  const handleBookFacility = () => {
-    toast({
-      title: 'Booking',
-      description: 'Facility booking functionality will be implemented soon.',
-    });
+  const { data: bookings } = useQuery({
+    queryKey: ['bookings'],
+    queryFn: async () => {
+      try {
+        const { data, error } = await supabase.from('bookings').select('*');
+        
+        if (error) {
+          console.info('Supabase error:', error);
+          return mockBookings;
+        }
+        
+        return data as Booking[];
+      } catch (err) {
+        console.error('Error fetching bookings:', err);
+        return mockBookings;
+      }
+    }
+  });
+
+  const { data: residents } = useQuery({
+    queryKey: ['residents'],
+    queryFn: async () => {
+      try {
+        const { data, error } = await supabase.from('residents').select('id, name, apartment');
+        
+        if (error) {
+          console.error('Supabase error fetching residents:', error);
+          return [];
+        }
+        
+        return data;
+      } catch (err) {
+        console.error('Error fetching residents:', err);
+        return [];
+      }
+    }
+  });
+
+  const getResidentInfo = (residentId: number) => {
+    if (residents && residents.length > 0) {
+      const resident = residents.find((r: any) => r.id === residentId);
+      return resident ? { name: resident.name, apartment: resident.apartment } : { name: 'Unknown', apartment: 'N/A' };
+    }
+    return { name: 'Unknown', apartment: 'N/A' };
+  };
+
+  const getAmenityName = (amenityId: number) => {
+    if (amenities && amenities.length > 0) {
+      const amenity = amenities.find(a => a.id === amenityId);
+      return amenity ? amenity.name : 'Unknown';
+    }
+    return 'Unknown';
+  };
+
+  const formatBookings = bookings?.map(booking => {
+    const residentInfo = getResidentInfo(booking.resident_id);
+    return {
+      id: booking.id,
+      facility: getAmenityName(booking.amenity_id),
+      bookedBy: residentInfo.name,
+      apartment: residentInfo.apartment,
+      date: booking.date,
+      time: booking.time_slot,
+      purpose: booking.purpose,
+    };
+  }) || [];
+
+  const handleBookAmenity = (amenityId?: number) => {
+    setSelectedAmenityId(amenityId || null);
+    setBookDialogOpen(true);
   };
 
   return (
@@ -107,7 +185,7 @@ const Amenities: React.FC = () => {
               View and book society amenities
             </p>
           </div>
-          <Button onClick={handleBookFacility}>
+          <Button onClick={() => handleBookAmenity()}>
             <Plus className="mr-2 h-4 w-4" /> Book Amenity
           </Button>
         </div>
@@ -135,7 +213,7 @@ const Amenities: React.FC = () => {
             <CardContent>
               <div className="flex items-center">
                 <Users className="h-8 w-8 text-primary mr-2" />
-                <span className="text-2xl font-bold">{mockBookings.length}</span>
+                <span className="text-2xl font-bold">{formatBookings.length}</span>
               </div>
             </CardContent>
           </Card>
@@ -175,7 +253,7 @@ const Amenities: React.FC = () => {
                       <TableHead>Capacity</TableHead>
                       <TableHead className="hidden md:table-cell">Opening Hours</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead className="hidden md:table-cell">Maintenance Day</TableHead>
+                      <TableHead>Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -190,7 +268,25 @@ const Amenities: React.FC = () => {
                             {amenity.status}
                           </Badge>
                         </TableCell>
-                        <TableCell className="hidden md:table-cell">{amenity.maintenance_day}</TableCell>
+                        <TableCell>
+                          {amenity.status.toLowerCase() === 'available' ? (
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleBookAmenity(amenity.id)}
+                            >
+                              Book Now
+                            </Button>
+                          ) : (
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              disabled={amenity.status.toLowerCase() !== 'booked'}
+                            >
+                              {amenity.status.toLowerCase() === 'booked' ? 'View Details' : 'Unavailable'}
+                            </Button>
+                          )}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -208,7 +304,7 @@ const Amenities: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {mockBookings.map((booking) => (
+              {formatBookings.map((booking) => (
                 <div
                   key={booking.id}
                   className="flex flex-col md:flex-row md:items-center justify-between p-4 border rounded-md hover:bg-muted/50 transition-colors"
@@ -232,6 +328,13 @@ const Amenities: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+
+      <BookAmenityDialog
+        open={bookDialogOpen}
+        onOpenChange={setBookDialogOpen}
+        onAdd={refetch}
+        amenityId={selectedAmenityId || undefined}
+      />
     </Layout>
   );
 };

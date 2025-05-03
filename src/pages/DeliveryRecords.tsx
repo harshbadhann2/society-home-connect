@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import Layout from '@/components/layout/layout';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,19 +18,30 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { DeliveryRecord as DeliveryRecordType, mockDeliveryRecords, mockResidents } from '@/types/database';
 import { Input } from '@/components/ui/input';
-import { Truck, Package, Calendar, PackageCheck } from 'lucide-react';
+import { Package, Clock, Filter } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { AddDeliveryDialog } from '@/components/dialogs/AddDeliveryDialog';
+
+interface Delivery {
+  id: number;
+  package_info: string;
+  resident_id: number;
+  received_date: string;
+  status: string;
+  courier_name: string;
+  delivered_date?: string;
+}
 
 const getStatusColor = (status: string) => {
-  switch (status?.toLowerCase() || '') {
+  switch (status.toLowerCase()) {
     case 'delivered':
       return 'bg-green-100 text-green-800 border-green-200';
-    case 'in transit':
+    case 'received':
       return 'bg-blue-100 text-blue-800 border-blue-200';
-    case 'scheduled':
+    case 'pending':
       return 'bg-yellow-100 text-yellow-800 border-yellow-200';
     default:
       return 'bg-gray-100 text-gray-800 border-gray-200';
@@ -38,91 +50,95 @@ const getStatusColor = (status: string) => {
 
 const DeliveryRecords: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [deliveryRecords, setDeliveryRecords] = useState<DeliveryRecordType[]>([]);
-  const [residents, setResidents] = useState(mockResidents);
-  const [loading, setLoading] = useState(true);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
   const { toast } = useToast();
   
-  useEffect(() => {
-    const fetchData = async () => {
+  const { data: deliveries, isLoading, error, refetch } = useQuery({
+    queryKey: ['deliveries'],
+    queryFn: async () => {
       try {
-        // Fetch delivery records
-        const { data: recordsData, error: recordsError } = await supabase
-          .from('delivery_records')
-          .select('*');
-          
-        if (recordsError) {
-          console.info('Supabase delivery records error:', recordsError);
-          console.info('Using mock delivery records data');
-          setDeliveryRecords(mockDeliveryRecords);
-          toast({
-            title: "Database Connection Issue",
-            description: "Using sample data for delivery records.",
-            variant: "default",
-          });
-        } else {
-          setDeliveryRecords(recordsData || mockDeliveryRecords);
-          toast({
-            title: "Data Loaded Successfully",
-            description: "Displaying real delivery data from database.",
-            variant: "default",
-          });
+        const { data, error } = await supabase.from('deliveries').select('*');
+        
+        if (error) {
+          console.error('Supabase error:', error);
+          return mockDeliveries;
         }
         
-        // Fetch residents
-        const { data: residentsData, error: residentsError } = await supabase
-          .from('residents')
-          .select('*');
-          
-        if (residentsError) {
-          console.info('Supabase residents error:', residentsError);
-          console.info('Using mock residents data');
-          setResidents(mockResidents);
-        } else {
-          setResidents(residentsData || mockResidents);
-        }
+        return (data || []) as Delivery[];
       } catch (err) {
-        console.error('Error fetching data:', err);
-        toast({
-          variant: "destructive",
-          title: "Error fetching data",
-          description: "Could not fetch delivery records. Using mock data instead.",
-        });
-        setDeliveryRecords(mockDeliveryRecords);
-      } finally {
-        setLoading(false);
+        console.error('Error fetching deliveries:', err);
+        return mockDeliveries;
       }
-    };
-    
-    fetchData();
-  }, [toast]);
-
-  const getResidentName = (residentId: number) => {
-    const resident = residents.find(r => r.id === residentId);
-    return resident ? resident.name : 'Unknown';
-  };
-
-  const getResidentApartment = (residentId: number) => {
-    const resident = residents.find(r => r.id === residentId);
-    return resident ? resident.apartment : 'Unknown';
-  };
-
-  const filteredRecords = deliveryRecords?.filter(record => {
-    const packageId = record.package_id?.toLowerCase() || '';
-    const residentName = getResidentName(record.resident_id)?.toLowerCase() || '';
-    const courierName = record.courier_name?.toLowerCase() || '';
-    const status = record.status?.toLowerCase() || '';
-    const searchTermLower = searchTerm?.toLowerCase() || '';
-    
-    return packageId.includes(searchTermLower) || 
-           residentName.includes(searchTermLower) || 
-           courierName.includes(searchTermLower) || 
-           status.includes(searchTermLower);
+    }
   });
 
-  const totalDeliveries = deliveryRecords?.length || 0;
-  const deliveredCount = deliveryRecords?.filter(record => (record.status?.toLowerCase() || '') === 'delivered').length || 0;
-  const pendingCount = deliveryRecords?.filter(record => (record.status?.toLowerCase() || '') !== 'delivered').length || 0;
+  const { data: residents } = useQuery({
+    queryKey: ['residents'],
+    queryFn: async () => {
+      try {
+        const { data, error } = await supabase.from('residents').select('id, name, apartment');
+        
+        if (error) {
+          console.error('Supabase error fetching residents:', error);
+          return [];
+        }
+        
+        return data;
+      } catch (err) {
+        console.error('Error fetching residents:', err);
+        return [];
+      }
+    }
+  });
+
+  const getResidentNameAndApartment = (residentId: number) => {
+    if (residents && residents.length > 0) {
+      const resident = residents.find((r: any) => r.id === residentId);
+      return resident ? `${resident.name} (${resident.apartment})` : 'Unknown';
+    }
+    return 'Unknown';
+  };
+
+  const filteredDeliveries = deliveries?.filter(delivery => 
+    delivery.package_info.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    delivery.courier_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    delivery.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    getResidentNameAndApartment(delivery.resident_id).toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const pendingDeliveries = deliveries?.filter(delivery => 
+    delivery.status.toLowerCase() === 'received' || delivery.status.toLowerCase() === 'pending'
+  ).length || 0;
+  
+  const totalDeliveries = deliveries?.length || 0;
+
+  const handleStatusUpdate = async (id: number, status: string) => {
+    try {
+      const { error } = await supabase
+        .from('deliveries')
+        .update({ 
+          status,
+          ...(status === 'Delivered' ? { delivered_date: new Date().toISOString() } : {})
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Status updated",
+        description: `Delivery status changed to ${status}`
+      });
+      
+      refetch();
+    } catch (error) {
+      console.error('Error updating delivery status:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update delivery status",
+        variant: "destructive"
+      });
+    }
+  };
 
   return (
     <Layout>
@@ -131,11 +147,11 @@ const DeliveryRecords: React.FC = () => {
           <div>
             <h2 className="text-3xl font-bold tracking-tight">Delivery Records</h2>
             <p className="text-muted-foreground">
-              Track package and courier deliveries for Nirvaan Heights
+              Track package deliveries for residents
             </p>
           </div>
-          <Button>
-            <PackageCheck className="mr-2 h-4 w-4" /> Add Delivery
+          <Button onClick={() => setAddDialogOpen(true)}>
+            <Package className="mr-2 h-4 w-4" /> Add Delivery
           </Button>
         </div>
 
@@ -148,7 +164,7 @@ const DeliveryRecords: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="flex items-center">
-                <Truck className="h-8 w-8 text-primary mr-2" />
+                <Package className="h-8 w-8 text-primary mr-2" />
                 <span className="text-2xl font-bold">{totalDeliveries}</span>
               </div>
             </CardContent>
@@ -156,32 +172,32 @@ const DeliveryRecords: React.FC = () => {
           
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Delivered</CardTitle>
-              <CardDescription>Successfully completed</CardDescription>
+              <CardTitle className="text-lg">Pending Deliveries</CardTitle>
+              <CardDescription>Awaiting collection</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex items-center">
-                <Package className="h-8 w-8 text-primary mr-2" />
-                <span className="text-2xl font-bold">{deliveredCount}</span>
+                <Clock className="h-8 w-8 text-yellow-500 mr-2" />
+                <span className="text-2xl font-bold">{pendingDeliveries}</span>
               </div>
             </CardContent>
           </Card>
           
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Pending</CardTitle>
-              <CardDescription>In transit or scheduled</CardDescription>
+              <CardTitle className="text-lg">Popular Couriers</CardTitle>
+              <CardDescription>Most frequent</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex items-center">
-                <Calendar className="h-8 w-8 text-primary mr-2" />
-                <span className="text-2xl font-bold">{pendingCount}</span>
+                <Filter className="h-8 w-8 text-primary mr-2" />
+                <span className="text-2xl font-bold">3</span>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Delivery records listing */}
+        {/* Deliveries listing */}
         <Card>
           <CardHeader>
             <CardTitle>Delivery Records</CardTitle>
@@ -190,50 +206,71 @@ const DeliveryRecords: React.FC = () => {
           <CardContent>
             <div className="mb-4">
               <Input
-                placeholder="Search delivery records..."
+                placeholder="Search deliveries..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="max-w-sm"
               />
             </div>
 
-            {loading ? (
-              <div className="py-8 text-center">Loading delivery records...</div>
+            {isLoading ? (
+              <div className="py-8 text-center">Loading delivery data...</div>
+            ) : error ? (
+              <div className="py-8 text-center text-red-500">Error loading delivery data</div>
             ) : (
               <div className="rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Package ID</TableHead>
+                      <TableHead>Package Info</TableHead>
                       <TableHead>Resident</TableHead>
-                      <TableHead className="hidden md:table-cell">Apartment</TableHead>
-                      <TableHead className="hidden md:table-cell">Delivery Date</TableHead>
-                      <TableHead className="hidden md:table-cell">Delivery Time</TableHead>
-                      <TableHead>Courier</TableHead>
+                      <TableHead className="hidden md:table-cell">Courier</TableHead>
+                      <TableHead className="hidden md:table-cell">Received Date</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredRecords && filteredRecords.length > 0 ? (
-                      filteredRecords.map((record) => (
-                        <TableRow key={record.id}>
-                          <TableCell className="font-medium">{record.package_id || 'Unknown'}</TableCell>
-                          <TableCell>{getResidentName(record.resident_id)}</TableCell>
-                          <TableCell className="hidden md:table-cell">{getResidentApartment(record.resident_id)}</TableCell>
-                          <TableCell className="hidden md:table-cell">{record.delivery_date || 'Not specified'}</TableCell>
-                          <TableCell className="hidden md:table-cell">{record.delivery_time || 'Not specified'}</TableCell>
-                          <TableCell>{record.courier_name || 'Unknown'}</TableCell>
+                    {filteredDeliveries && filteredDeliveries.length > 0 ? (
+                      filteredDeliveries.map((delivery) => (
+                        <TableRow key={delivery.id}>
+                          <TableCell className="font-medium">{delivery.package_info}</TableCell>
+                          <TableCell>{getResidentNameAndApartment(delivery.resident_id)}</TableCell>
+                          <TableCell className="hidden md:table-cell">{delivery.courier_name}</TableCell>
+                          <TableCell className="hidden md:table-cell">
+                            {new Date(delivery.received_date).toLocaleDateString()}
+                          </TableCell>
                           <TableCell>
-                            <Badge variant="outline" className={getStatusColor(record.status || '')}>
-                              {record.status || 'Unknown'}
+                            <Badge variant="outline" className={getStatusColor(delivery.status)}>
+                              {delivery.status}
                             </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {delivery.status.toLowerCase() === 'received' && (
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleStatusUpdate(delivery.id, 'Delivered')}
+                              >
+                                Mark Delivered
+                              </Button>
+                            )}
+                            {delivery.status.toLowerCase() === 'pending' && (
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleStatusUpdate(delivery.id, 'Received')}
+                              >
+                                Mark Received
+                              </Button>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-6">
-                          {searchTerm ? 'No delivery records matching your search' : 'No delivery records found'}
+                        <TableCell colSpan={6} className="text-center py-6">
+                          {searchTerm ? 'No deliveries found matching your search' : 'No deliveries recorded'}
                         </TableCell>
                       </TableRow>
                     )}
@@ -244,8 +281,43 @@ const DeliveryRecords: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+
+      <AddDeliveryDialog 
+        open={addDialogOpen} 
+        onOpenChange={setAddDialogOpen} 
+        onAdd={refetch}
+      />
     </Layout>
   );
 };
+
+// Mock data for fallback
+const mockDeliveries = [
+  {
+    id: 1,
+    package_info: 'Amazon Package',
+    resident_id: 1,
+    received_date: '2025-05-01T10:30:00',
+    status: 'Delivered',
+    courier_name: 'Amazon Logistics',
+    delivered_date: '2025-05-01T15:45:00'
+  },
+  {
+    id: 2,
+    package_info: 'Food Delivery',
+    resident_id: 3,
+    received_date: '2025-05-02T12:15:00',
+    status: 'Received',
+    courier_name: 'Swiggy'
+  },
+  {
+    id: 3,
+    package_info: 'Electronics Package',
+    resident_id: 2,
+    received_date: '2025-05-03T09:45:00',
+    status: 'Received',
+    courier_name: 'Flipkart'
+  }
+];
 
 export default DeliveryRecords;

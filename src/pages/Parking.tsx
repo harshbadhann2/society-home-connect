@@ -24,6 +24,7 @@ import { Parking as ParkingType, mockParking } from '@/types/database';
 import { Input } from '@/components/ui/input';
 import { ParkingMeter, Car, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { AssignParkingDialog } from '@/components/dialogs/AssignParkingDialog';
 
 const getStatusColor = (status: string | undefined) => {
   switch (status?.toLowerCase() || '') {
@@ -40,10 +41,12 @@ const getStatusColor = (status: string | undefined) => {
 
 const Parking: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false);
+  const [selectedSpotId, setSelectedSpotId] = useState<number | null>(null);
   const { toast } = useToast();
   
   // Fetch parking data
-  const { data: parking, isLoading: parkingLoading, error: parkingError } = useQuery({
+  const { data: parking, isLoading: parkingLoading, error: parkingError, refetch: refetchParking } = useQuery({
     queryKey: ['parking'],
     queryFn: async () => {
       try {
@@ -124,6 +127,11 @@ const Parking: React.FC = () => {
            status.includes(searchTermLower);
   });
 
+  const handleAssignParking = (spotId: number) => {
+    setSelectedSpotId(spotId);
+    setAssignDialogOpen(true);
+  };
+
   const totalSpots = parking?.length || 0;
   const occupiedSpots = parking?.filter(spot => (spot.status?.toLowerCase() || '') === 'occupied').length || 0;
   const availableSpots = parking?.filter(spot => (spot.status?.toLowerCase() || '') === 'available').length || 0;
@@ -140,7 +148,22 @@ const Parking: React.FC = () => {
               View and manage Nirvaan Heights parking spots
             </p>
           </div>
-          <Button>Assign Parking</Button>
+          <Button 
+            onClick={() => {
+              const availableSpot = parking?.find(spot => (spot.status?.toLowerCase() || '') === 'available');
+              if (availableSpot) {
+                handleAssignParking(availableSpot.id);
+              } else {
+                toast({
+                  title: "No available spots",
+                  description: "There are currently no available parking spots to assign.",
+                  variant: "destructive"
+                });
+              }
+            }}
+          >
+            Assign Parking
+          </Button>
         </div>
 
         {/* Parking statistics */}
@@ -215,6 +238,7 @@ const Parking: React.FC = () => {
                       <TableHead className="hidden md:table-cell">Vehicle Number</TableHead>
                       <TableHead className="hidden md:table-cell">Resident</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -230,11 +254,36 @@ const Parking: React.FC = () => {
                               {spot.status || 'Unknown'}
                             </Badge>
                           </TableCell>
+                          <TableCell>
+                            {(spot.status?.toLowerCase() || '') === 'available' ? (
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleAssignParking(spot.id)}
+                              >
+                                Assign
+                              </Button>
+                            ) : (
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => {
+                                  // Implement release parking logic here
+                                  toast({
+                                    title: "Release parking",
+                                    description: "This will be implemented soon.",
+                                  });
+                                }}
+                              >
+                                Release
+                              </Button>
+                            )}
+                          </TableCell>
                         </TableRow>
                       ))
                     ) : (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center py-6">
+                        <TableCell colSpan={6} className="text-center py-6">
                           {searchTerm ? 'No parking spots found matching your search' : 'No parking spots available'}
                         </TableCell>
                       </TableRow>
@@ -246,6 +295,14 @@ const Parking: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Parking Assignment Dialog */}
+      <AssignParkingDialog
+        open={assignDialogOpen}
+        onOpenChange={setAssignDialogOpen}
+        onAssign={refetchParking}
+        spotId={selectedSpotId || undefined}
+      />
     </Layout>
   );
 };
