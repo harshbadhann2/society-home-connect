@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/layout/layout';
 import { Button } from '@/components/ui/button';
@@ -22,7 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { DeliveryRecord as DeliveryRecordType, mockDeliveryRecords, mockResidents } from '@/types/database';
 import { Input } from '@/components/ui/input';
-import { Truck, Package, Calendar, Delivery } from 'lucide-react';
+import { Truck, Package, Calendar, PackageCheck } from 'lucide-react';
 
 const getStatusColor = (status: string) => {
   switch (status?.toLowerCase() || '') {
@@ -136,7 +135,7 @@ const DeliveryRecords: React.FC = () => {
             </p>
           </div>
           <Button>
-            <Delivery className="mr-2 h-4 w-4" /> Add Delivery
+            <PackageCheck className="mr-2 h-4 w-4" /> Add Delivery
           </Button>
         </div>
 

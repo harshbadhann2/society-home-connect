@@ -31,7 +31,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { mockHousekeeping, mockStaff } from '@/types/database';
 import { Housekeeping, Staff } from '@/types/database';
-import { ClipboardCheck, ClipboardList, Clock, Housekeeping as HousekeepingIcon } from 'lucide-react';
+import { ClipboardCheck, ClipboardList, Clock, Brush } from 'lucide-react';
 
 const HousekeepingPage: React.FC = () => {
   const [housekeepingTasks, setHousekeepingTasks] = useState<Housekeeping[]>([]);
@@ -145,7 +145,7 @@ const HousekeepingPage: React.FC = () => {
             <p className="text-muted-foreground">Manage and track housekeeping tasks for Nirvaan Heights</p>
           </div>
           <Button className="mt-4 md:mt-0">
-            <HousekeepingIcon className="mr-2 h-4 w-4" /> Add New Task
+            <Brush className="mr-2 h-4 w-4" /> Add New Task
           </Button>
         </div>
 
