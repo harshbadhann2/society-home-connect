@@ -25,7 +25,7 @@ import { Input } from '@/components/ui/input';
 import { Truck, Package, Calendar } from 'lucide-react';
 
 const getStatusColor = (status: string) => {
-  switch (status.toLowerCase()) {
+  switch (status?.toLowerCase() || '') {
     case 'delivered':
       return 'bg-green-100 text-green-800 border-green-200';
     case 'in transit':
@@ -98,16 +98,22 @@ const DeliveryRecords: React.FC = () => {
     return resident ? resident.apartment : 'Unknown';
   };
 
-  const filteredRecords = deliveryRecords?.filter(record => 
-    record.package_id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    getResidentName(record.resident_id).toLowerCase().includes(searchTerm.toLowerCase()) ||
-    record.courier_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    record.status.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredRecords = deliveryRecords?.filter(record => {
+    const packageId = record.package_id?.toLowerCase() || '';
+    const residentName = getResidentName(record.resident_id)?.toLowerCase() || '';
+    const courierName = record.courier_name?.toLowerCase() || '';
+    const status = record.status?.toLowerCase() || '';
+    const searchTermLower = searchTerm?.toLowerCase() || '';
+    
+    return packageId.includes(searchTermLower) || 
+           residentName.includes(searchTermLower) || 
+           courierName.includes(searchTermLower) || 
+           status.includes(searchTermLower);
+  });
 
   const totalDeliveries = deliveryRecords?.length || 0;
-  const deliveredCount = deliveryRecords?.filter(record => record.status.toLowerCase() === 'delivered').length || 0;
-  const pendingCount = deliveryRecords?.filter(record => record.status.toLowerCase() !== 'delivered').length || 0;
+  const deliveredCount = deliveryRecords?.filter(record => record.status?.toLowerCase() === 'delivered').length || 0;
+  const pendingCount = deliveryRecords?.filter(record => record.status?.toLowerCase() !== 'delivered').length || 0;
 
   return (
     <Layout>
@@ -197,21 +203,29 @@ const DeliveryRecords: React.FC = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredRecords?.map((record) => (
-                      <TableRow key={record.id}>
-                        <TableCell className="font-medium">{record.package_id}</TableCell>
-                        <TableCell>{getResidentName(record.resident_id)}</TableCell>
-                        <TableCell className="hidden md:table-cell">{getResidentApartment(record.resident_id)}</TableCell>
-                        <TableCell className="hidden md:table-cell">{record.delivery_date}</TableCell>
-                        <TableCell className="hidden md:table-cell">{record.delivery_time}</TableCell>
-                        <TableCell>{record.courier_name}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className={getStatusColor(record.status)}>
-                            {record.status}
-                          </Badge>
+                    {filteredRecords && filteredRecords.length > 0 ? (
+                      filteredRecords.map((record) => (
+                        <TableRow key={record.id}>
+                          <TableCell className="font-medium">{record.package_id}</TableCell>
+                          <TableCell>{getResidentName(record.resident_id)}</TableCell>
+                          <TableCell className="hidden md:table-cell">{getResidentApartment(record.resident_id)}</TableCell>
+                          <TableCell className="hidden md:table-cell">{record.delivery_date}</TableCell>
+                          <TableCell className="hidden md:table-cell">{record.delivery_time}</TableCell>
+                          <TableCell>{record.courier_name}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className={getStatusColor(record.status || '')}>
+                              {record.status || 'Unknown'}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-6">
+                          {searchTerm ? 'No delivery records matching your search' : 'No delivery records found'}
                         </TableCell>
                       </TableRow>
-                    ))}
+                    )}
                   </TableBody>
                 </Table>
               </div>
