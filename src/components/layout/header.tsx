@@ -20,6 +20,14 @@ import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
+interface User {
+  id?: string;
+  name?: string;
+  email?: string;
+  role?: string;
+  [key: string]: any; // Allow for any other properties
+}
+
 const Header: React.FC = () => {
   const isMobile = useIsMobile();
   const { toggleSidebar } = useSidebarContext();
@@ -30,8 +38,8 @@ const Header: React.FC = () => {
     { id: 3, message: "Maintenance scheduled", time: "Yesterday" }
   ]);
 
-  // Default user from mock data
-  const [currentUser, setCurrentUser] = useState(mockResidents[0]);
+  // Default user with proper typing
+  const [currentUser, setCurrentUser] = useState<User>(mockResidents[0]);
   const [timeOfDay, setTimeOfDay] = useState<string>("");
   
   // Fetch user data based on role
@@ -88,7 +96,7 @@ const Header: React.FC = () => {
   useEffect(() => {
     // Update current user when userData changes
     if (userData) {
-      setCurrentUser(userData);
+      setCurrentUser(userData as User);
     }
     
     // Get time of day for greeting
@@ -107,9 +115,9 @@ const Header: React.FC = () => {
   const getUserName = () => {
     if (!currentUser) return "Guest";
     
-    if ('name' in currentUser) {
+    if ('name' in currentUser && currentUser.name) {
       return currentUser.name;
-    } else if ('email' in currentUser) {
+    } else if ('email' in currentUser && currentUser.email) {
       // If we only have email (like for admin), use the part before @
       return currentUser.email.split('@')[0];
     }
