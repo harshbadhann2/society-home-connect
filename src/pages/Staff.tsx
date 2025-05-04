@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import Layout from '@/components/layout/layout';
 import { Button } from '@/components/ui/button';
@@ -52,15 +53,61 @@ const Staff: React.FC = () => {
     queryKey: ['staff'],
     queryFn: async () => {
       try {
+        // Check if the staff table exists first
+        const { data: tableExists, error: checkError } = await supabase
+          .from('staff')
+          .select('count')
+          .limit(1)
+          .single();
+        
+        if (checkError && checkError.message.includes("does not exist")) {
+          console.info('Staff table does not exist, creating one...');
+          
+          // Create the staff table
+          const createTableQuery = `
+            CREATE TABLE IF NOT EXISTS staff (
+              id SERIAL PRIMARY KEY,
+              name TEXT NOT NULL,
+              position TEXT NOT NULL,
+              contact TEXT,
+              email TEXT,
+              joining_date TEXT,
+              status TEXT DEFAULT 'Active',
+              created_at TIMESTAMPTZ DEFAULT NOW()
+            );
+          `;
+          
+          try {
+            // Note: In a real app, we'd use Supabase migrations or Edge Functions
+            // Since we can't run raw SQL directly from the client, we'll use mock data
+            console.info('Would execute:', createTableQuery);
+            console.info('Using mock staff data for now');
+            return mockStaff;
+          } catch (createError) {
+            console.error('Error creating staff table:', createError);
+            return mockStaff;
+          }
+        }
+        
+        // If we get here, the table exists, so fetch data
         const { data, error } = await supabase.from('staff').select('*');
         
         if (error) {
-          console.info('Supabase error:', error);
+          console.error('Supabase error:', error);
           console.info('Using mock staff data');
           return mockStaff;
         }
         
-        return data as StaffType[];
+        if (data && data.length > 0) {
+          return data as StaffType[];
+        }
+        
+        // If table exists but is empty, seed with mock data
+        console.info('Staff table exists but is empty, using mock data');
+        
+        // In a real application, we could insert the mock data here
+        // For now, just return the mock data
+        return mockStaff;
       } catch (err) {
         console.error('Error fetching staff:', err);
         return mockStaff;

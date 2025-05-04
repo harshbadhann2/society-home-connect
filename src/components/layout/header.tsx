@@ -15,8 +15,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import AuthContext from '@/context/AuthContext';
-import { mockResidents } from '@/types/database';
+import { mockResidents, mockStaff, mockUsers } from '@/types/database';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 const Header: React.FC = () => {
   const isMobile = useIsMobile();
@@ -28,22 +30,96 @@ const Header: React.FC = () => {
     { id: 3, message: "Maintenance scheduled", time: "Yesterday" }
   ]);
 
-  // Get current user name (using mock data for demo)
+  // Default user from mock data
   const [currentUser, setCurrentUser] = useState(mockResidents[0]);
   const [timeOfDay, setTimeOfDay] = useState<string>("");
   
+  // Fetch user data based on role
+  const { data: userData } = useQuery({
+    queryKey: ['current-user', userRole],
+    queryFn: async () => {
+      if (!userRole) return null;
+      
+      try {
+        // For admin, we use a simple lookup from mock data
+        if (userRole === 'admin') {
+          return mockUsers.find(user => user.role === 'admin');
+        }
+        
+        // For staff, try to fetch from database first
+        if (userRole === 'staff') {
+          const { data, error } = await supabase
+            .from('staff')
+            .select('*')
+            .limit(1);
+            
+          if (data && data.length > 0) {
+            return data[0];
+          } else {
+            return mockStaff[0]; // Fallback to mock data
+          }
+        }
+        
+        // For residents, try to fetch from database first
+        if (userRole === 'resident') {
+          const { data, error } = await supabase
+            .from('residents')
+            .select('*')
+            .limit(1);
+            
+          if (data && data.length > 0) {
+            return data[0];
+          } else {
+            return mockResidents[0]; // Fallback to mock data
+          }
+        }
+        
+        return null;
+      } catch (err) {
+        console.error('Error fetching user data:', err);
+        // Fallback to mock data based on role
+        if (userRole === 'admin') return mockUsers.find(user => user.role === 'admin');
+        if (userRole === 'staff') return mockStaff[0];
+        return mockResidents[0];
+      }
+    }
+  });
+  
   useEffect(() => {
+    // Update current user when userData changes
+    if (userData) {
+      setCurrentUser(userData);
+    }
+    
     // Get time of day for greeting
     const hour = new Date().getHours();
     if (hour < 12) setTimeOfDay("Good Morning");
     else if (hour < 17) setTimeOfDay("Good Afternoon");
     else setTimeOfDay("Good Evening");
-  }, []);
+  }, [userData]);
   
   const handleLogout = () => {
     setIsAuthenticated(false);
     setUserRole(null);
   };
+  
+  // Helper function to get user's name regardless of user type
+  const getUserName = () => {
+    if (!currentUser) return "Guest";
+    
+    if ('name' in currentUser) {
+      return currentUser.name;
+    } else if ('email' in currentUser) {
+      // If we only have email (like for admin), use the part before @
+      return currentUser.email.split('@')[0];
+    }
+    
+    return "User";
+  };
+  
+  // Extract first name for display
+  const firstName = getUserName().split(' ')[0];
+  const title = userRole === 'admin' ? 'Admin' : userRole === 'staff' ? 'Mr./Ms.' : 'Mr./Ms.';
   
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -81,7 +157,7 @@ const Header: React.FC = () => {
           {/* User greeting - show on tablet and larger */}
           <div className="hidden md:block text-sm font-medium">
             <span className="text-muted-foreground">{timeOfDay}! </span>
-            <span className="text-foreground">Mr. {currentUser.name.split(' ')[0]}</span>
+            <span className="text-foreground">{title} {firstName}</span>
           </div>
           
           <DropdownMenu>
@@ -117,12 +193,12 @@ const Header: React.FC = () => {
             <DropdownMenuTrigger asChild>
               <Avatar className="cursor-pointer">
                 <AvatarFallback className="bg-secondary text-secondary-foreground">
-                  {currentUser.name.charAt(0)}
+                  {getUserName().charAt(0)}
                 </AvatarFallback>
               </Avatar>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>{currentUser.name}</DropdownMenuLabel>
+              <DropdownMenuLabel>{getUserName()}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <Link to="/profile">Profile</Link>
