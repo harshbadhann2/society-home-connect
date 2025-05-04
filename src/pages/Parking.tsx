@@ -132,6 +132,46 @@ const Parking: React.FC = () => {
     setAssignDialogOpen(true);
   };
 
+  // New function to handle releasing a parking spot
+  const handleReleaseParking = async (spotId: number) => {
+    try {
+      const { error } = await supabase
+        .from('parking')
+        .update({
+          resident_id: 0,
+          vehicle_type: '',
+          vehicle_number: '',
+          status: 'Available'
+        })
+        .eq('id', spotId);
+
+      if (error) {
+        console.error('Error releasing parking:', error);
+        toast({
+          title: "Error",
+          description: "Failed to release parking spot. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      toast({
+        title: "Parking Released",
+        description: "The parking spot has been successfully released."
+      });
+      
+      // Refresh data
+      refetchParking();
+    } catch (err) {
+      console.error('Error releasing parking:', err);
+      toast({
+        title: "Error",
+        description: "An unexpected error occurred while releasing the parking spot.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const totalSpots = parking?.length || 0;
   const occupiedSpots = parking?.filter(spot => (spot.status?.toLowerCase() || '') === 'occupied').length || 0;
   const availableSpots = parking?.filter(spot => (spot.status?.toLowerCase() || '') === 'available').length || 0;
@@ -267,13 +307,7 @@ const Parking: React.FC = () => {
                               <Button 
                                 variant="outline" 
                                 size="sm"
-                                onClick={() => {
-                                  // Implement release parking logic here
-                                  toast({
-                                    title: "Release parking",
-                                    description: "This will be implemented soon.",
-                                  });
-                                }}
+                                onClick={() => handleReleaseParking(spot.id)}
                               >
                                 Release
                               </Button>
