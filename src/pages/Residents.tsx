@@ -44,10 +44,28 @@ const Residents: React.FC = () => {
         if (error) {
           console.log("Supabase error:", error);
           
-          // If the table doesn't exist, return mock data
+          // Create the table if it doesn't exist
           if (error.message.includes("does not exist")) {
-            console.log("Using mock residents data");
-            return mockResidents;
+            try {
+              // Try to create the table with proper schema
+              const createTableResult = await supabase.rpc('create_residents_table_if_not_exists');
+              console.log("Table creation result:", createTableResult);
+              
+              // Try fetching again after creation
+              const { data: newData, error: newError } = await supabase
+                .from('residents')
+                .select('*');
+                
+              if (newError) {
+                console.log("Error after table creation:", newError);
+                return mockResidents;
+              }
+              
+              return newData as Resident[] || mockResidents;
+            } catch (createErr) {
+              console.log("Error creating table:", createErr);
+              return mockResidents;
+            }
           }
           
           throw error;
@@ -55,7 +73,7 @@ const Residents: React.FC = () => {
         
         return data as Resident[];
       } catch (err) {
-        console.log("Falling back to mock data");
+        console.log("Falling back to mock data:", err);
         return mockResidents;
       }
     },
@@ -81,6 +99,24 @@ const Residents: React.FC = () => {
 
   const handleAddResident = async (newResident: Omit<Resident, 'id' | 'created_at'>) => {
     try {
+      console.log("Attempting to add resident:", newResident);
+      
+      // First, check if we need to create the table
+      try {
+        const { data: checkData, error: checkError } = await supabase
+          .from('residents')
+          .select('count')
+          .limit(1);
+          
+        if (checkError && checkError.message.includes("does not exist")) {
+          // Table doesn't exist, create it
+          await supabase.rpc('create_residents_table_if_not_exists');
+          console.log("Created residents table");
+        }
+      } catch (checkErr) {
+        console.log("Error checking table:", checkErr);
+      }
+      
       // Try to add to Supabase
       const { data, error } = await supabase
         .from('residents')
@@ -88,13 +124,17 @@ const Residents: React.FC = () => {
         .select();
 
       if (error) {
+        console.error("Error inserting resident:", error);
+        
+        // Show different message based on error type
         if (error.message.includes("does not exist")) {
-          // Show success message even with mock data
+          // Still having table issues
           toast({
-            title: "Resident Added",
-            description: `${newResident.name} has been added successfully to mock data.`,
+            title: "Database Issue",
+            description: "The residents table is not properly set up. Used mock data instead.",
+            variant: "destructive",
           });
-          return true;
+          return true; // Return true to close the dialog
         }
         throw error;
       }

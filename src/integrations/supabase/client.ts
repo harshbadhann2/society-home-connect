@@ -9,3 +9,28 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 // import { supabase } from "@/integrations/supabase/client";
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+
+// Helper function to check and create tables if they don't exist
+export const initializeDatabase = async () => {
+  try {
+    // Check if residents table exists
+    const { error: residentCheckError } = await supabase
+      .from('residents')
+      .select('count')
+      .limit(1);
+
+    if (residentCheckError && residentCheckError.message.includes("does not exist")) {
+      // Create residents table
+      await supabase.rpc('create_residents_table_if_not_exists');
+      console.log("Created residents table");
+    }
+
+    // Similar checks for other tables...
+
+  } catch (error) {
+    console.error('Error initializing database:', error);
+  }
+};
+
+// Call this function when your app starts
+initializeDatabase();

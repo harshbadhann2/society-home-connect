@@ -21,7 +21,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 interface User {
-  id?: string;
+  id?: string | number;
   name?: string;
   email?: string;
   role?: string;

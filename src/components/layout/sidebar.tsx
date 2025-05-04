@@ -29,9 +29,10 @@ interface NavItemProps {
   href: string;
   active?: boolean;
   roles?: Array<'admin' | 'staff' | 'resident' | null>;
+  index: number;
 }
 
-const NavItem: React.FC<NavItemProps> = ({ icon: Icon, label, href, active, roles }) => {
+const NavItem: React.FC<NavItemProps> = ({ icon: Icon, label, href, active, roles, index }) => {
   const { userRole } = useContext(AuthContext);
 
   // If roles is defined and the current user's role is not in the allowed roles, don't render the item
@@ -43,9 +44,10 @@ const NavItem: React.FC<NavItemProps> = ({ icon: Icon, label, href, active, role
     <Link
       to={href}
       className={cn(
-        "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all",
+        "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all animate-roll-in",
         active ? "text-primary bg-primary/10 font-medium" : "text-muted-foreground hover:text-primary hover:bg-primary/5"
       )}
+      style={{ animationDelay: `${index * 50}ms` }}
     >
       <Icon className="h-4 w-4" />
       <span>{label}</span>
@@ -84,16 +86,16 @@ const Sidebar: React.FC = () => {
   return (
     <div className={cn(
       "pb-12 min-h-screen transition-all duration-300 border-r bg-sidebar",
-      isOpen ? "w-64" : "w-0 border-none"
+      isOpen ? "w-64 animate-slide-in-right" : "w-0 border-none"
     )}>
       {isOpen && (
-        <div className="space-y-4 py-4">
+        <div className="space-y-4 py-4 animate-fade-in">
           <div className="px-3 py-2">
             <h2 className="mb-2 px-4 text-lg font-semibold tracking-tight">
               Nirvaan Heights
             </h2>
             <div className="space-y-1">
-              {navItems.map((item) => (
+              {navItems.map((item, index) => (
                 <NavItem
                   key={item.href}
                   icon={item.icon}
@@ -101,6 +103,7 @@ const Sidebar: React.FC = () => {
                   href={item.href}
                   active={location.pathname === item.href}
                   roles={item.roles}
+                  index={index}
                 />
               ))}
             </div>

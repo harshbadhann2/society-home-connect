@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toast } from "@/components/ui/use-toast";
 
 interface AddResidentDialogProps {
   open: boolean;
@@ -42,7 +43,18 @@ const AddResidentDialog = ({ open, onOpenChange, onAdd }: AddResidentDialogProps
     e.preventDefault();
     setIsSubmitting(true);
     
+    if (!formData.name || !formData.apartment || !formData.email || !formData.contact) {
+      toast({
+        variant: "destructive",
+        title: "Validation Error",
+        description: "Please fill in all required fields.",
+      });
+      setIsSubmitting(false);
+      return;
+    }
+    
     try {
+      console.log("Submitting resident data:", formData);
       const success = await onAdd(formData);
       if (success) {
         // Reset form and close dialog
@@ -57,6 +69,11 @@ const AddResidentDialog = ({ open, onOpenChange, onAdd }: AddResidentDialogProps
       }
     } catch (error) {
       console.error("Error submitting form:", error);
+      toast({
+        variant: "destructive",
+        title: "Submission Error",
+        description: "There was a problem adding the resident. Please try again.",
+      });
     } finally {
       setIsSubmitting(false);
     }
