@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Layout from '@/components/layout/layout';
 import { Button } from '@/components/ui/button';
@@ -25,6 +24,7 @@ import { Input } from '@/components/ui/input';
 import { Users, UserPlus, Calendar, Loader2 } from 'lucide-react';
 import AddStaffDialog from '@/components/dialogs/AddStaffDialog';
 import AssignTaskDialog from '@/components/dialogs/AssignTaskDialog';
+import { useToast } from '@/hooks/use-toast';
 
 const getStatusColor = (status: string | undefined) => {
   if (!status) return 'bg-gray-100 text-gray-800 border-gray-200';
@@ -42,6 +42,7 @@ const getStatusColor = (status: string | undefined) => {
 };
 
 const Staff: React.FC = () => {
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
