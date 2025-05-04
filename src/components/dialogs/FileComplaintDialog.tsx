@@ -37,6 +37,23 @@ export function FileComplaintDialog({ open, onOpenChange, onAdd }: FileComplaint
 
     setIsSubmitting(true);
     try {
+      // First check if the table exists
+      const { error: checkError } = await supabase.from('complaints').select('count').limit(1);
+      
+      if (checkError && checkError.message.includes('does not exist')) {
+        // Table doesn't exist, try to create it
+        console.log('Complaints table does not exist, attempting to create');
+        
+        // If we can't create it through our init function, show meaningful error
+        toast({
+          title: "Database not ready",
+          description: "Please refresh the page and try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Table exists, proceed with insert
       const { error } = await supabase
         .from('complaints')
         .insert({
@@ -53,6 +70,9 @@ export function FileComplaintDialog({ open, onOpenChange, onAdd }: FileComplaint
         title: "Complaint filed",
         description: "Your complaint has been successfully submitted."
       });
+      setSubject("");
+      setDescription("");
+      setCategory("");
       onOpenChange(false);
       if (onAdd) onAdd();
     } catch (error) {

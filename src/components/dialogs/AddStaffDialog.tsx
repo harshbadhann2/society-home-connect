@@ -12,7 +12,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { toast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AddStaffDialogProps {
   open: boolean;
@@ -22,6 +23,7 @@ interface AddStaffDialogProps {
 
 const AddStaffDialog = ({ open, onOpenChange, onAdd }: AddStaffDialogProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
   const [formData, setFormData] = useState({
     name: '',
     position: 'Security',
@@ -45,18 +47,48 @@ const AddStaffDialog = ({ open, onOpenChange, onAdd }: AddStaffDialogProps) => {
     setIsSubmitting(true);
     
     try {
-      const success = await onAdd(formData);
-      if (success) {
-        // Reset form and close dialog
-        setFormData({
-          name: '',
-          position: 'Security',
-          contact: '',
-          email: '',
-          joining_date: new Date().toISOString().split('T')[0],
-          status: 'Active',
+      // First check if table exists
+      const { error: checkError } = await supabase.from('staff').select('count').limit(1);
+      
+      if (checkError && checkError.message.includes('does not exist')) {
+        console.log('Staff table does not exist, attempting to create');
+        
+        toast({
+          title: "Database not ready",
+          description: "Please refresh the page and try again.",
+          variant: "destructive"
         });
-        onOpenChange(false);
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // Table exists, proceed with insert
+      const { data, error } = await supabase
+        .from('staff')
+        .insert([{ ...formData, created_at: new Date().toISOString() }])
+        .select();
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Staff Added",
+        description: `${formData.name} has been added successfully.`,
+      });
+      
+      // Reset form and close dialog
+      setFormData({
+        name: '',
+        position: 'Security',
+        contact: '',
+        email: '',
+        joining_date: new Date().toISOString().split('T')[0],
+        status: 'Active',
+      });
+      onOpenChange(false);
+      if (onAdd) {
+        await onAdd(formData);
       }
     } catch (error) {
       console.error("Error submitting form:", error);

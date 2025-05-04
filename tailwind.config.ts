@@ -62,7 +62,8 @@ const config = {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        sans: ["var(--font-sans)", ...fontFamily.sans],
+        // Using default font family from Tailwind
+        sans: fontFamily.sans,
       },
       keyframes: {
         "accordion-down": {

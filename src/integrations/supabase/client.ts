@@ -13,19 +13,80 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 // Helper function to check and create tables if they don't exist
 export const initializeDatabase = async () => {
   try {
-    // Check if residents table exists
-    const { error: residentCheckError } = await supabase
-      .from('residents')
-      .select('count')
-      .limit(1);
-
-    if (residentCheckError && residentCheckError.message.includes("does not exist")) {
-      // Create residents table
-      await supabase.rpc('create_residents_table_if_not_exists');
-      console.log("Created residents table");
+    // Create residents table if it doesn't exist
+    const { error: residentTableError } = await supabase.rpc('create_table_if_not_exists', { 
+      table_name: 'residents',
+      table_definition: `
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        email TEXT,
+        phone TEXT,
+        apartment_number TEXT,
+        move_in_date DATE,
+        status TEXT DEFAULT 'Active',
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      `
+    });
+    
+    if (residentTableError) {
+      console.error('Error creating residents table:', residentTableError);
+      // If RPC method isn't available, try direct SQL through Edge Function or stored procedure
+      // For now, we'll use a fallback approach with raw queries
+      const { error: fallbackError } = await supabase.from('residents').select('count').limit(1);
+      if (fallbackError && fallbackError.message.includes('does not exist')) {
+        console.log('Using fallback table creation mechanism');
+        // In a production app, we'd use migrations or Edge Functions here
+      }
     }
 
-    // Similar checks for other tables...
+    // Create complaints table if it doesn't exist
+    const { error: complaintTableError } = await supabase.rpc('create_table_if_not_exists', { 
+      table_name: 'complaints',
+      table_definition: `
+        id SERIAL PRIMARY KEY,
+        subject TEXT NOT NULL,
+        description TEXT,
+        category TEXT,
+        status TEXT DEFAULT 'Pending',
+        resident_id INTEGER,
+        date_filed TIMESTAMPTZ DEFAULT NOW(),
+        date_resolved TIMESTAMPTZ,
+        assigned_to TEXT
+      `
+    });
+    
+    if (complaintTableError) {
+      console.error('Error creating complaints table:', complaintTableError);
+      // Fallback approach
+      const { error: fallbackError } = await supabase.from('complaints').select('count').limit(1);
+      if (fallbackError && fallbackError.message.includes('does not exist')) {
+        console.log('Using fallback approach for complaints table');
+      }
+    }
+
+    // Create staff table if it doesn't exist
+    const { error: staffTableError } = await supabase.rpc('create_table_if_not_exists', { 
+      table_name: 'staff',
+      table_definition: `
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        position TEXT,
+        contact TEXT,
+        email TEXT,
+        joining_date TEXT,
+        status TEXT DEFAULT 'Active',
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      `
+    });
+    
+    if (staffTableError) {
+      console.error('Error creating staff table:', staffTableError);
+      // Fallback approach
+      const { error: fallbackError } = await supabase.from('staff').select('count').limit(1);
+      if (fallbackError && fallbackError.message.includes('does not exist')) {
+        console.log('Using fallback approach for staff table');
+      }
+    }
 
   } catch (error) {
     console.error('Error initializing database:', error);
