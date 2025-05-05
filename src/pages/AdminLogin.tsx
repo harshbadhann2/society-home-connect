@@ -1,6 +1,6 @@
 
-import React, { useState, useContext } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -13,87 +13,67 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '../context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { mockUsers } from '@/types/database';
-import { Shield } from 'lucide-react';
-import AuthContext from '@/context/AuthContext';
 
-const AdminLogin: React.FC = () => {
+const AdminLogin = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
   const navigate = useNavigate();
-  const { setIsAuthenticated, setUserRole } = useContext(AuthContext);
+  const { toast } = useToast();
+  const { setIsAuthenticated, setUserRole } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      // First, try to authenticate with Supabase
-      // Using explicit type annotation to solve the infinite type instantiation error
-      type UserData = { 
-        user_id: number; 
-        username: string; 
-        email: string; 
-        password_hash: string; 
-        role: string;
-      };
-
-      const response = await supabase
-        .from('users')
-        .select('*')
-        .eq('email', email)
-        .eq('password_hash', password)
-        .eq('role', 'admin');
-
-      const data = response.data as UserData[] | null;
-      const error = response.error;
-
-      if (error || !data || data.length === 0) {
-        console.info('Supabase admin login error:', error);
-        console.info('Falling back to mock users');
-
-        // Fall back to mock data
-        const user = mockUsers.find(user => user.email === email && user.password === password && user.role === 'admin');
+      // For demo purposes, check if credentials match admin account
+      if (email === 'admin@nirvaanheights.com' && password === 'admin123') {
+        // Success: Set auth context and navigate to dashboard
+        toast({
+          title: 'Login successful',
+          description: 'Welcome back, administrator!',
+        });
         
-        if (!user) {
-          toast({
-            variant: "destructive",
-            title: "Login Failed",
-            description: "Invalid administrator credentials.",
-          });
-          setIsLoading(false);
-          return;
-        }
-        
-        // Use mock user
         setIsAuthenticated(true);
         setUserRole('admin');
-        toast({
-          title: "Admin Login Successful",
-          description: "Welcome back, administrator!",
-        });
         navigate('/');
         return;
       }
 
-      // Supabase authentication successful
-      setIsAuthenticated(true);
-      setUserRole('admin');
-      toast({
-        title: "Admin Login Successful",
-        description: "Welcome back, administrator!",
-      });
-      navigate('/');
+      // Attempt using Supabase
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .eq('role', 'admin')
+        .single();
 
-    } catch (err) {
-      console.error('Login error:', err);
+      if (error || !data) {
+        throw new Error('Invalid credentials');
+      }
+
+      // In a real app, we would verify the password with a proper hashing function
+      // This is a simplified check for demonstration
+      if (data.password_hash === password) {
+        setIsAuthenticated(true);
+        setUserRole('admin');
+        navigate('/');
+        toast({
+          title: 'Login successful',
+          description: 'Welcome back, administrator!',
+        });
+      } else {
+        throw new Error('Invalid credentials');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
       toast({
-        variant: "destructive",
-        title: "Login Error",
-        description: "An error occurred during login. Please try again.",
+        title: 'Login Failed',
+        description: 'Invalid email or password.',
+        variant: 'destructive',
       });
     } finally {
       setIsLoading(false);
@@ -101,58 +81,52 @@ const AdminLogin: React.FC = () => {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <Card className="mx-auto max-w-sm">
+    <div className="flex h-screen items-center justify-center bg-gray-50 p-4">
+      <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <div className="flex items-center justify-center mb-2">
-            <Shield className="h-10 w-10 text-primary" />
-          </div>
-          <CardTitle className="text-2xl font-bold text-center">Admin Login</CardTitle>
-          <CardDescription className="text-center">
-            Restricted access for administrators only
+          <CardTitle className="text-2xl font-bold">Admin Login</CardTitle>
+          <CardDescription>
+            Enter your credentials to access the administrator dashboard
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
+        <form onSubmit={handleLogin}>
+          <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Admin Email</Label>
-              <Input 
-                id="email" 
-                type="email" 
-                placeholder="admin@example.com" 
-                required 
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                placeholder="admin@example.com"
+                type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                required
               />
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Password</Label>
-                <Link to="#" className="text-xs text-primary hover:underline">
+                <a
+                  href="#"
+                  className="text-sm text-primary underline-offset-4 hover:underline"
+                >
                   Forgot password?
-                </Link>
+                </a>
               </div>
-              <Input 
-                id="password" 
-                type="password" 
-                required 
+              <Input
+                id="password"
+                type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                required
               />
             </div>
+          </CardContent>
+          <CardFooter>
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Authenticating..." : "Login as Administrator"}
+              {isLoading ? 'Logging in...' : 'Login'}
             </Button>
-          </form>
-        </CardContent>
-        <CardFooter className="flex flex-col">
-          <div className="text-center text-sm text-muted-foreground mt-2">
-            Not an administrator?{" "}
-            <Link to="/login" className="text-primary hover:underline">
-              Resident/Staff Login
-            </Link>
-          </div>
-        </CardFooter>
+          </CardFooter>
+        </form>
       </Card>
     </div>
   );

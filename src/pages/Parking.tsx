@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import Layout from '@/components/layout/layout';
 import { Button } from '@/components/ui/button';
@@ -32,43 +33,43 @@ import { AssignParkingDialog } from '@/components/dialogs/AssignParkingDialog';
 
 // Define the parking slot interface
 interface ParkingSlot {
-  id: number;
-  spot_number: string;
+  parking_id: number;
+  slot_number: string;
   vehicle_type: string;
   vehicle_number: string;
   resident_id: number;
-  status: string;
-  created_at?: string;
+  parking_status: string;
+  start_time?: string;
 }
 
 // Mock data for fallback
 const mockParkingSlots = [
   {
-    id: 1,
-    spot_number: 'P-001',
+    parking_id: 1,
+    slot_number: 'P-001',
     vehicle_type: 'Car',
     vehicle_number: 'MH01AB1234',
     resident_id: 1,
-    status: 'Occupied',
-    created_at: '2025-05-01T10:00:00',
+    parking_status: 'Occupied',
+    start_time: '2025-05-01T10:00:00',
   },
   {
-    id: 2,
-    spot_number: 'P-002',
+    parking_id: 2,
+    slot_number: 'P-002',
     vehicle_type: 'Motorcycle',
     vehicle_number: 'MH02CD5678',
     resident_id: 2,
-    status: 'Reserved',
-    created_at: '2025-05-02T14:30:00',
+    parking_status: 'Reserved',
+    start_time: '2025-05-02T14:30:00',
   },
   {
-    id: 3,
-    spot_number: 'V-001',
+    parking_id: 3,
+    slot_number: 'V-001',
     vehicle_type: 'Visitor Car',
     vehicle_number: 'MH03EF9012',
     resident_id: 0,
-    status: 'Available',
-    created_at: '2025-05-03T08:45:00',
+    parking_status: 'Available',
+    start_time: '2025-05-03T08:45:00',
   },
 ];
 
@@ -76,6 +77,7 @@ const Parking: React.FC = () => {
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [selectedSpotId, setSelectedSpotId] = useState<number | undefined>(undefined);
 
   // Fetch parking data
   const { data: parkingSlots, isLoading, error, refetch } = useQuery({
@@ -89,18 +91,7 @@ const Parking: React.FC = () => {
           return mockParkingSlots;
         }
         
-        // Transform the data to match our ParkingSlot interface
-        const transformedData = data?.map(slot => ({
-          id: slot.parking_id,
-          spot_number: slot.slot_number || 'Unassigned',
-          vehicle_type: slot.vehicle_type || 'Unknown',
-          vehicle_number: slot.vehicle_number || 'N/A',
-          resident_id: slot.resident_id || 0,
-          status: slot.parking_status || 'Available',
-          created_at: slot.start_time || new Date().toISOString()
-        })) as ParkingSlot[];
-        
-        return transformedData;
+        return data as ParkingSlot[];
       } catch (err) {
         console.error('Error:', err);
         return mockParkingSlots;
@@ -139,19 +130,19 @@ const Parking: React.FC = () => {
   // Filter parking slots based on search query and status filter
   const filteredParkingSlots = parkingSlots?.filter(slot => {
     const matchesSearch = 
-      slot.spot_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      slot.vehicle_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (slot.slot_number?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+      (slot.vehicle_number?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
       getResidentName(slot.resident_id).toLowerCase().includes(searchQuery.toLowerCase());
       
-    const matchesFilter = statusFilter === 'all' || slot.status.toLowerCase() === statusFilter.toLowerCase();
+    const matchesFilter = statusFilter === 'all' || (slot.parking_status?.toLowerCase() || '') === statusFilter.toLowerCase();
     
     return matchesSearch && matchesFilter;
   });
 
   // Counters for statistics
   const totalSlots = parkingSlots?.length || 0;
-  const occupiedSlots = parkingSlots?.filter(slot => slot.status.toLowerCase() === 'occupied').length || 0;
-  const reservedSlots = parkingSlots?.filter(slot => slot.status.toLowerCase() === 'reserved').length || 0;
+  const occupiedSlots = parkingSlots?.filter(slot => (slot.parking_status?.toLowerCase() || '') === 'occupied').length || 0;
+  const reservedSlots = parkingSlots?.filter(slot => (slot.parking_status?.toLowerCase() || '') === 'reserved').length || 0;
 
   // Handle status change
   const handleStatusChange = async (id: number, newStatus: string) => {
@@ -171,6 +162,12 @@ const Parking: React.FC = () => {
       console.error('Error updating status:', err);
     }
   };
+  
+  // Handle assigning parking
+  const handleAssignParking = (id: number) => {
+    setSelectedSpotId(id);
+    setAssignDialogOpen(true);
+  };
 
   return (
     <Layout>
@@ -182,7 +179,7 @@ const Parking: React.FC = () => {
               Manage parking slots and resident assignments
             </p>
           </div>
-          <Button onClick={() => setAssignDialogOpen(true)}>
+          <Button onClick={() => handleAssignParking(parkingSlots?.[0]?.parking_id || 1)}>
             <Car className="mr-2 h-4 w-4" /> Assign Parking
           </Button>
         </div>
@@ -277,21 +274,21 @@ const Parking: React.FC = () => {
                   </TableHeader>
                   <TableBody>
                     {filteredParkingSlots?.map((slot) => (
-                      <TableRow key={slot.id}>
-                        <TableCell className="font-medium">{slot.spot_number}</TableCell>
+                      <TableRow key={slot.parking_id}>
+                        <TableCell className="font-medium">{slot.slot_number}</TableCell>
                         <TableCell>{slot.vehicle_type}</TableCell>
                         <TableCell>{slot.vehicle_number}</TableCell>
                         <TableCell>{getResidentName(slot.resident_id)}</TableCell>
                         <TableCell>
-                          <Badge variant="outline">{slot.status}</Badge>
+                          <Badge variant="outline">{slot.parking_status}</Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                          {slot.status.toLowerCase() === 'available' ? (
-                            <Button variant="ghost" size="sm" onClick={() => handleStatusChange(slot.id, 'Occupied')}>
-                              Mark Occupied
+                          {(slot.parking_status?.toLowerCase() || '') === 'available' ? (
+                            <Button variant="ghost" size="sm" onClick={() => handleAssignParking(slot.parking_id)}>
+                              Assign
                             </Button>
                           ) : (
-                            <Button variant="ghost" size="sm" onClick={() => handleStatusChange(slot.id, 'Available')}>
+                            <Button variant="ghost" size="sm" onClick={() => handleStatusChange(slot.parking_id, 'Available')}>
                               Mark Available
                             </Button>
                           )}
@@ -309,7 +306,8 @@ const Parking: React.FC = () => {
       <AssignParkingDialog
         open={assignDialogOpen}
         onOpenChange={setAssignDialogOpen}
-        onAdd={refetch}
+        onAssign={refetch}
+        spotId={selectedSpotId}
       />
     </Layout>
   );
