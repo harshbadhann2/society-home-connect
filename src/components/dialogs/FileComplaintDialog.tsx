@@ -55,12 +55,12 @@ export function FileComplaintDialog({ open, onOpenChange, onAdd }: FileComplaint
       
       // Table exists, proceed with insert
       const { error } = await supabase
-        .from('complaint') // Changed from 'complaints' to 'complaint'
+        .from('complaint')
         .insert({
           subject,
-          complaint_text: description, // Changed from 'description' to 'complaint_text'
+          complaint_text: description,
           resident_id: 1, // Default resident_id
-          complaint_status: 'Pending', // Changed from 'status' to 'complaint_status' 
+          complaint_status: 'Pending',
           date_raised: new Date().toISOString().split('T')[0], // Format as YYYY-MM-DD
         });
 

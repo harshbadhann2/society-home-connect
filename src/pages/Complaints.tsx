@@ -101,14 +101,26 @@ const Complaints: React.FC = () => {
     queryKey: ['complaints'],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase.from('complaints').select('*').order('date_filed', { ascending: false });
+        const { data, error } = await supabase.from('complaint').select('*').order('date_raised', { ascending: false });
         
         if (error) {
           console.error('Supabase error:', error);
           return mockComplaints;
         }
         
-        return (data as Complaint[]) || mockComplaints;
+        // Transform the data to match our Complaint interface
+        const transformedData = data ? data.map(item => ({
+          id: item.complaint_id,
+          resident_id: item.resident_id || 0,
+          subject: item.subject || '',
+          description: item.complaint_text || '',
+          category: 'General', // Default since it's not in the DB schema
+          status: item.complaint_status || 'Pending',
+          date_filed: item.date_raised || new Date().toISOString().split('T')[0],
+          assigned_to: ''
+        })) : [];
+        
+        return transformedData as Complaint[];
       } catch (err) {
         console.error('Error fetching complaints:', err);
         return mockComplaints;
@@ -120,7 +132,7 @@ const Complaints: React.FC = () => {
     queryKey: ['residents'],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase.from('residents').select('id, name');
+        const { data, error } = await supabase.from('resident').select('resident_id, name');
         
         if (error) {
           console.error('Supabase error fetching residents:', error);
@@ -137,7 +149,7 @@ const Complaints: React.FC = () => {
 
   const getResidentName = (residentId: number) => {
     if (residents && residents.length > 0) {
-      const resident = residents.find((r: any) => r.id === residentId);
+      const resident = residents.find((r: any) => r.resident_id === residentId);
       return resident ? resident.name : 'Unknown';
     }
     
@@ -148,14 +160,13 @@ const Complaints: React.FC = () => {
   const handleStatusChange = async (id: number, newStatus: string) => {
     try {
       const updates = {
-        status: newStatus,
-        ...(newStatus === 'Resolved' ? { date_resolved: new Date().toISOString() } : {})
+        complaint_status: newStatus,
       };
       
       const { error } = await supabase
-        .from('complaints')
+        .from('complaint')
         .update(updates)
-        .eq('id', id);
+        .eq('complaint_id', id);
         
       if (error) throw error;
       

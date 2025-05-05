@@ -36,7 +36,7 @@ const AdminLogin: React.FC = () => {
         .from('users')
         .select('*')
         .eq('email', email)
-        .eq('password', password) // NOTE: In a real application, never store passwords in plaintext
+        .eq('password', password)
         .eq('role', 'admin')
         .single();
 
