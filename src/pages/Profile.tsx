@@ -41,7 +41,7 @@ interface FallbackData {
   name: string;
   email?: string;
   contact_number?: string;
-  role: string; // Add role property to FallbackData
+  role: string; 
   department: string;
   joinDate: string;
 }
