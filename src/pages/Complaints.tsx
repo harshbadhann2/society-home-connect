@@ -101,6 +101,7 @@ const Complaints: React.FC = () => {
     queryKey: ['complaints'],
     queryFn: async () => {
       try {
+        // Fix: Change from "complaints" to "complaint" to match database schema
         const { data, error } = await supabase.from('complaint').select('*').order('date_raised', { ascending: false });
         
         if (error) {
@@ -129,9 +130,10 @@ const Complaints: React.FC = () => {
   });
 
   const { data: residents } = useQuery({
-    queryKey: ['residents'],
+    queryKey: ['complaintsResidents'],
     queryFn: async () => {
       try {
+        // Fix: Change from "residents" to "resident" to match database schema
         const { data, error } = await supabase.from('resident').select('resident_id, name');
         
         if (error) {
@@ -159,7 +161,8 @@ const Complaints: React.FC = () => {
 
   const handleStatusChange = async (id: number, newStatus: string) => {
     try {
-      const updates = {
+      // Fix type instantiation issue with explicit type annotation
+      const updates: { complaint_status: string } = {
         complaint_status: newStatus,
       };
       

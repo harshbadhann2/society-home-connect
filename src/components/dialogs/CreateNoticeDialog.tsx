@@ -35,6 +35,7 @@ export function CreateNoticeDialog({ open, onOpenChange, onAdd }: CreateNoticeDi
 
     setIsSubmitting(true);
     try {
+      // Fix: Changed "notices" to "notice_board" to match the actual table in the database
       const { error } = await supabase
         .from('notice_board') 
         .insert({

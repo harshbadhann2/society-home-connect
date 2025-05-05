@@ -32,15 +32,26 @@ const AdminLogin: React.FC = () => {
 
     try {
       // First, try to authenticate with Supabase
-      const { data, error } = await supabase
+      // Using explicit type annotation to solve the infinite type instantiation error
+      type UserData = { 
+        user_id: number; 
+        username: string; 
+        email: string; 
+        password_hash: string; 
+        role: string;
+      };
+
+      const response = await supabase
         .from('users')
         .select('*')
         .eq('email', email)
-        .eq('password', password)
-        .eq('role', 'admin')
-        .single();
+        .eq('password_hash', password)
+        .eq('role', 'admin');
 
-      if (error) {
+      const data = response.data as UserData[] | null;
+      const error = response.error;
+
+      if (error || !data || data.length === 0) {
         console.info('Supabase admin login error:', error);
         console.info('Falling back to mock users');
 

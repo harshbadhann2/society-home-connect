@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/layout/layout';
 import { Button } from '@/components/ui/button';
@@ -63,7 +62,19 @@ const HousekeepingPage: React.FC = () => {
             variant: "default",
           });
         } else {
-          setHousekeepingTasks(housekeepingData || mockHousekeeping);
+          // Transform housekeeping data to match our Housekeeping interface
+          const transformedTasks = housekeepingData?.map(item => ({
+            id: item.housekeeping_id,
+            area: item.service_type || 'Unknown Area',
+            task_description: `Cleaning task for ${item.service_type || 'Unknown Area'}`,
+            assigned_staff: item.staff_id,
+            frequency: 'Weekly', // Default value as it's not in the schema
+            status: item.cleaning_status || 'scheduled',
+            last_completed: item.cleaning_date || 'Never',
+            next_scheduled: item.cleaning_date ? new Date(new Date(item.cleaning_date).getTime() + 7*24*60*60*1000).toISOString().split('T')[0] : 'Not scheduled',
+          })) || [];
+          
+          setHousekeepingTasks(transformedTasks);
           toast({
             title: "Data Loaded Successfully",
             description: "Displaying real housekeeping data from database.",
@@ -76,7 +87,18 @@ const HousekeepingPage: React.FC = () => {
           console.info('Falling back to mock staff data');
           setStaffList(mockStaff);
         } else {
-          setStaffList(staffData || mockStaff);
+          // Transform staff data to match our Staff interface
+          const transformedStaff = staffData?.map(item => ({
+            id: item.staff_id,
+            name: item.name || 'Unknown',
+            position: item.role || 'Staff',
+            contact: item.contact_number || 'N/A',
+            email: `${item.name?.toLowerCase().replace(/\s+/g, '.')}@nirvaan.com` || 'staff@nirvaan.com',
+            joining_date: item.joining_date || 'N/A',
+            status: 'Active'
+          })) || [];
+          
+          setStaffList(transformedStaff);
         }
       } catch (err) {
         console.error('Error fetching data:', err);

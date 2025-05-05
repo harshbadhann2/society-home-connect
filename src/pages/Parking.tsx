@@ -1,14 +1,6 @@
-
 import React, { useState } from 'react';
 import Layout from '@/components/layout/layout';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import {
   Table,
   TableBody,
@@ -17,196 +9,168 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Parking as ParkingType, mockParking } from '@/types/database';
-import { Input } from '@/components/ui/input';
-import { ParkingMeter, Car, Clock } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { Car, CalendarRange, Search } from 'lucide-react';
 import { AssignParkingDialog } from '@/components/dialogs/AssignParkingDialog';
 
-const getStatusColor = (status: string | undefined) => {
-  switch (status?.toLowerCase() || '') {
-    case 'occupied':
-      return 'bg-blue-100 text-blue-800 border-blue-200';
-    case 'available':
-      return 'bg-green-100 text-green-800 border-green-200';
-    case 'reserved for visitors':
-      return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-    default:
-      return 'bg-gray-100 text-gray-800 border-gray-200';
-  }
-};
+// Define the parking slot interface
+interface ParkingSlot {
+  id: number;
+  spot_number: string;
+  vehicle_type: string;
+  vehicle_number: string;
+  resident_id: number;
+  status: string;
+  created_at?: string;
+}
+
+// Mock data for fallback
+const mockParkingSlots = [
+  {
+    id: 1,
+    spot_number: 'P-001',
+    vehicle_type: 'Car',
+    vehicle_number: 'MH01AB1234',
+    resident_id: 1,
+    status: 'Occupied',
+    created_at: '2025-05-01T10:00:00',
+  },
+  {
+    id: 2,
+    spot_number: 'P-002',
+    vehicle_type: 'Motorcycle',
+    vehicle_number: 'MH02CD5678',
+    resident_id: 2,
+    status: 'Reserved',
+    created_at: '2025-05-02T14:30:00',
+  },
+  {
+    id: 3,
+    spot_number: 'V-001',
+    vehicle_type: 'Visitor Car',
+    vehicle_number: 'MH03EF9012',
+    resident_id: 0,
+    status: 'Available',
+    created_at: '2025-05-03T08:45:00',
+  },
+];
 
 const Parking: React.FC = () => {
-  const [searchTerm, setSearchTerm] = useState('');
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
-  const [selectedSpotId, setSelectedSpotId] = useState<number | null>(null);
-  const { toast } = useToast();
-  
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+
   // Fetch parking data
-  const { data: parkingData, isLoading: parkingLoading, error: parkingError, refetch: refetchParking } = useQuery({
-    queryKey: ['parking'],
+  const { data: parkingSlots, isLoading, error, refetch } = useQuery({
+    queryKey: ['parkingSlots'],
     queryFn: async () => {
       try {
         const { data, error } = await supabase.from('parking').select('*');
         
         if (error) {
-          console.error('Supabase error:', error);
-          toast({
-            title: "Database Error",
-            description: "Could not fetch parking data from database. Using mock data instead.",
-            variant: "destructive"
-          });
-          return mockParking;
+          console.error('Error fetching parking data:', error);
+          return mockParkingSlots;
         }
         
-        if (data && data.length > 0) {
-          return data as ParkingType[];
-        } else {
-          console.info('No parking data found in database, using mock data');
-          return mockParking;
-        }
+        // Transform the data to match our ParkingSlot interface
+        const transformedData = data?.map(slot => ({
+          id: slot.parking_id,
+          spot_number: slot.slot_number || 'Unassigned',
+          vehicle_type: slot.vehicle_type || 'Unknown',
+          vehicle_number: slot.vehicle_number || 'N/A',
+          resident_id: slot.resident_id || 0,
+          status: slot.parking_status || 'Available',
+          created_at: slot.start_time || new Date().toISOString()
+        })) as ParkingSlot[];
+        
+        return transformedData;
       } catch (err) {
-        console.error('Error fetching parking:', err);
-        toast({
-          title: "Error",
-          description: "An error occurred while fetching parking data. Using mock data.",
-          variant: "destructive"
-        });
-        return mockParking;
+        console.error('Error:', err);
+        return mockParkingSlots;
       }
     }
   });
 
-  // State to track parking data (from DB or mock)
-  const [parkingSpots, setParkingSpots] = useState<ParkingType[]>([]);
-
-  // Update local state whenever parkingData changes
-  React.useEffect(() => {
-    if (parkingData) {
-      setParkingSpots(parkingData);
-    }
-  }, [parkingData]);
-
-  // Fetch residents data for names
-  const { data: residents, isLoading: residentsLoading } = useQuery({
-    queryKey: ['residents'],
+  // Fetch resident data
+  const { data: residents } = useQuery({
+    queryKey: ['parkingResidents'],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase.from('residents').select('id, name');
+        const { data, error } = await supabase.from('resident').select('resident_id, name, apartment_id');
         
         if (error) {
-          console.error('Supabase error fetching residents:', error);
+          console.error('Error fetching resident data:', error);
           return [];
         }
         
         return data;
       } catch (err) {
-        console.error('Error fetching residents:', err);
+        console.error('Error:', err);
         return [];
       }
     }
   });
 
-  const getResidentName = (residentId: number) => {
-    if (residentId === 0) return 'N/A';
+  // Get resident name by ID
+  const getResidentName = (id: number) => {
+    if (!residents) return 'Unknown';
     
-    // Use residents from database if available
-    if (residents && residents.length > 0) {
-      const resident = residents.find((r: any) => r.id === residentId);
-      return resident ? resident.name : 'Unknown';
-    }
-    
-    // Fallback to mock residents if database fetch failed
-    const mockResident = mockResidents.find(r => r.id === residentId);
-    return mockResident ? mockResident.name : 'Unknown';
+    const resident = residents.find((r: any) => r.resident_id === id);
+    return resident ? resident.name : 'Unknown';
   };
 
-  const filteredParking = parkingSpots.filter(spot => {
-    const spotNumber = spot.spot_number?.toLowerCase() || '';
-    const vehicleNumber = spot.vehicle_number?.toLowerCase() || '';
-    const residentName = getResidentName(spot.resident_id)?.toLowerCase() || '';
-    const status = spot.status?.toLowerCase() || '';
-    const searchTermLower = searchTerm?.toLowerCase() || '';
+  // Filter parking slots based on search query and status filter
+  const filteredParkingSlots = parkingSlots?.filter(slot => {
+    const matchesSearch = 
+      slot.spot_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      slot.vehicle_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      getResidentName(slot.resident_id).toLowerCase().includes(searchQuery.toLowerCase());
+      
+    const matchesFilter = statusFilter === 'all' || slot.status.toLowerCase() === statusFilter.toLowerCase();
     
-    return spotNumber.includes(searchTermLower) ||
-           vehicleNumber.includes(searchTermLower) ||
-           residentName.includes(searchTermLower) ||
-           status.includes(searchTermLower);
+    return matchesSearch && matchesFilter;
   });
 
-  const handleAssignParking = (spotId: number) => {
-    setSelectedSpotId(spotId);
-    setAssignDialogOpen(true);
-  };
+  // Counters for statistics
+  const totalSlots = parkingSlots?.length || 0;
+  const occupiedSlots = parkingSlots?.filter(slot => slot.status.toLowerCase() === 'occupied').length || 0;
+  const reservedSlots = parkingSlots?.filter(slot => slot.status.toLowerCase() === 'reserved').length || 0;
 
-  // Updated release parking function to handle both DB and mock data
-  const handleReleaseParking = async (spotId: number) => {
+  // Handle status change
+  const handleStatusChange = async (id: number, newStatus: string) => {
     try {
-      // Try to update in database first
+      // Fixed type instantiation issue by adding an explicit annotation
+      const updates: { parking_status: string } = { parking_status: newStatus };
+      
       const { error } = await supabase
         .from('parking')
-        .update({
-          resident_id: 0,
-          vehicle_type: '',
-          vehicle_number: '',
-          status: 'Available'
-        })
-        .eq('id', spotId);
-
-      // If there's an error with the database update
-      if (error) {
-        console.error('Error releasing parking in DB:', error);
+        .update(updates)
+        .eq('parking_id', id);
         
-        // Fallback to updating mock data in local state
-        setParkingSpots(prevSpots => 
-          prevSpots.map(spot => 
-            spot.id === spotId 
-              ? { ...spot, resident_id: 0, vehicle_type: '', vehicle_number: '', status: 'Available' }
-              : spot
-          )
-        );
-        
-        toast({
-          title: "Parking Released",
-          description: "The parking spot has been successfully released (using local data)."
-        });
-        return;
-      }
-
-      toast({
-        title: "Parking Released",
-        description: "The parking spot has been successfully released."
-      });
+      if (error) throw error;
       
-      // Refresh data
-      refetchParking();
+      refetch();
     } catch (err) {
-      console.error('Error releasing parking:', err);
-      
-      // Fallback to updating mock data in local state
-      setParkingSpots(prevSpots => 
-        prevSpots.map(spot => 
-          spot.id === spotId 
-            ? { ...spot, resident_id: 0, vehicle_type: '', vehicle_number: '', status: 'Available' }
-            : spot
-        )
-      );
-      
-      toast({
-        title: "Parking Released",
-        description: "The parking spot has been successfully released (using local data)."
-      });
+      console.error('Error updating status:', err);
     }
   };
-
-  const totalSpots = parkingSpots.length || 0;
-  const occupiedSpots = parkingSpots.filter(spot => (spot.status?.toLowerCase() || '') === 'occupied').length || 0;
-  const availableSpots = parkingSpots.filter(spot => (spot.status?.toLowerCase() || '') === 'available').length || 0;
-
-  const isLoading = parkingLoading || residentsLoading;
 
   return (
     <Layout>
@@ -215,24 +179,11 @@ const Parking: React.FC = () => {
           <div>
             <h2 className="text-3xl font-bold tracking-tight">Parking Management</h2>
             <p className="text-muted-foreground">
-              View and manage Nirvaan Heights parking spots
+              Manage parking slots and resident assignments
             </p>
           </div>
-          <Button 
-            onClick={() => {
-              const availableSpot = parkingSpots.find(spot => (spot.status?.toLowerCase() || '') === 'available');
-              if (availableSpot) {
-                handleAssignParking(availableSpot.id);
-              } else {
-                toast({
-                  title: "No available spots",
-                  description: "There are currently no available parking spots to assign.",
-                  variant: "destructive"
-                });
-              }
-            }}
-          >
-            Assign Parking
+          <Button onClick={() => setAssignDialogOpen(true)}>
+            <Car className="mr-2 h-4 w-4" /> Assign Parking
           </Button>
         </div>
 
@@ -240,39 +191,39 @@ const Parking: React.FC = () => {
         <div className="grid gap-4 md:grid-cols-3">
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Total Parking Spots</CardTitle>
-              <CardDescription>Society wide</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center">
-                <ParkingMeter className="h-8 w-8 text-primary mr-2" />
-                <span className="text-2xl font-bold">{totalSpots}</span>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Occupied Spots</CardTitle>
-              <CardDescription>Currently in use</CardDescription>
+              <CardTitle className="text-lg">Total Slots</CardTitle>
+              <CardDescription>All parking slots</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex items-center">
                 <Car className="h-8 w-8 text-primary mr-2" />
-                <span className="text-2xl font-bold">{occupiedSpots}</span>
+                <span className="text-2xl font-bold">{totalSlots}</span>
               </div>
             </CardContent>
           </Card>
           
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Available Spots</CardTitle>
-              <CardDescription>Ready for assignment</CardDescription>
+              <CardTitle className="text-lg">Occupied Slots</CardTitle>
+              <CardDescription>Currently in use</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex items-center">
-                <Clock className="h-8 w-8 text-primary mr-2" />
-                <span className="text-2xl font-bold">{availableSpots}</span>
+                <CalendarRange className="h-8 w-8 text-red-500 mr-2" />
+                <span className="text-2xl font-bold">{occupiedSlots}</span>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">Reserved Slots</CardTitle>
+              <CardDescription>Allocated but not in use</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center">
+                <CalendarRange className="h-8 w-8 text-yellow-500 mr-2" />
+                <span className="text-2xl font-bold">{reservedSlots}</span>
               </div>
             </CardContent>
           </Card>
@@ -281,22 +232,35 @@ const Parking: React.FC = () => {
         {/* Parking listing */}
         <Card>
           <CardHeader>
-            <CardTitle>Parking Directory</CardTitle>
-            <CardDescription>All Nirvaan Heights parking spots</CardDescription>
+            <CardTitle>Parking Slots</CardTitle>
+            <CardDescription>List of all parking slots</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="mb-4">
+            <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0 md:space-x-2">
               <Input
-                placeholder="Search parking spots..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search parking slots..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="max-w-sm"
               />
+              <div className="flex items-center space-x-2">
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="available">Available</SelectItem>
+                    <SelectItem value="occupied">Occupied</SelectItem>
+                    <SelectItem value="reserved">Reserved</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {isLoading ? (
               <div className="py-8 text-center">Loading parking data...</div>
-            ) : parkingError ? (
+            ) : error ? (
               <div className="py-8 text-center text-red-500">Error loading parking data</div>
             ) : (
               <div className="rounded-md border">
@@ -305,53 +269,35 @@ const Parking: React.FC = () => {
                     <TableRow>
                       <TableHead>Spot Number</TableHead>
                       <TableHead>Vehicle Type</TableHead>
-                      <TableHead className="hidden md:table-cell">Vehicle Number</TableHead>
-                      <TableHead className="hidden md:table-cell">Resident</TableHead>
+                      <TableHead>Vehicle Number</TableHead>
+                      <TableHead>Resident</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Action</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredParking && filteredParking.length > 0 ? (
-                      filteredParking.map((spot) => (
-                        <TableRow key={spot.id}>
-                          <TableCell className="font-medium">{spot.spot_number || 'N/A'}</TableCell>
-                          <TableCell>{spot.vehicle_type || 'N/A'}</TableCell>
-                          <TableCell className="hidden md:table-cell">{spot.vehicle_number || 'N/A'}</TableCell>
-                          <TableCell className="hidden md:table-cell">{getResidentName(spot.resident_id)}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className={getStatusColor(spot.status)}>
-                              {spot.status || 'Unknown'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {(spot.status?.toLowerCase() || '') === 'available' ? (
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleAssignParking(spot.id)}
-                              >
-                                Assign
-                              </Button>
-                            ) : (
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleReleaseParking(spot.id)}
-                              >
-                                Release
-                              </Button>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center py-6">
-                          {searchTerm ? 'No parking spots found matching your search' : 'No parking spots available'}
+                    {filteredParkingSlots?.map((slot) => (
+                      <TableRow key={slot.id}>
+                        <TableCell className="font-medium">{slot.spot_number}</TableCell>
+                        <TableCell>{slot.vehicle_type}</TableCell>
+                        <TableCell>{slot.vehicle_number}</TableCell>
+                        <TableCell>{getResidentName(slot.resident_id)}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{slot.status}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {slot.status.toLowerCase() === 'available' ? (
+                            <Button variant="ghost" size="sm" onClick={() => handleStatusChange(slot.id, 'Occupied')}>
+                              Mark Occupied
+                            </Button>
+                          ) : (
+                            <Button variant="ghost" size="sm" onClick={() => handleStatusChange(slot.id, 'Available')}>
+                              Mark Available
+                            </Button>
+                          )}
                         </TableCell>
                       </TableRow>
-                    )}
+                    ))}
                   </TableBody>
                 </Table>
               </div>
@@ -360,61 +306,13 @@ const Parking: React.FC = () => {
         </Card>
       </div>
 
-      {/* Parking Assignment Dialog */}
       <AssignParkingDialog
         open={assignDialogOpen}
         onOpenChange={setAssignDialogOpen}
-        onAssign={() => {
-          refetchParking();
-        }}
-        spotId={selectedSpotId || undefined}
+        onAdd={refetch}
       />
     </Layout>
   );
 };
-
-// Needed for fallback
-const mockResidents = [
-  {
-    id: 1,
-    name: 'John Doe',
-    apartment: 'A-101',
-    status: 'Owner',
-    contact: '555-1234',
-    email: 'john.doe@example.com',
-  },
-  {
-    id: 2,
-    name: 'Jane Smith',
-    apartment: 'B-202',
-    status: 'Tenant',
-    contact: '555-5678',
-    email: 'jane.smith@example.com',
-  },
-  {
-    id: 3,
-    name: 'Robert Johnson',
-    apartment: 'C-303',
-    status: 'Owner',
-    contact: '555-9012',
-    email: 'robert.j@example.com',
-  },
-  {
-    id: 4,
-    name: 'Emily Wong',
-    apartment: 'D-404',
-    status: 'Tenant',
-    contact: '555-3456',
-    email: 'emily.w@example.com',
-  },
-  {
-    id: 5,
-    name: 'Michael Brown',
-    apartment: 'A-105',
-    status: 'Owner',
-    contact: '555-7890',
-    email: 'michael.b@example.com',
-  }
-];
 
 export default Parking;
