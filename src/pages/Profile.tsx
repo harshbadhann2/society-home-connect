@@ -17,7 +17,7 @@ interface ResidentData {
   name: string;
   email: string;
   contact_number: string;
-  apartment_id?: number;
+  apartment_id?: string;  // Changed to string to match AuthContext type
   status: string;
   resident_id: number;
   joining_date: string;
@@ -78,7 +78,8 @@ const Profile: React.FC<ProfileProps> = () => {
           return { 
             ...data,
             department: 'Resident',
-            joinDate: data.joining_date
+            joinDate: data.joining_date,
+            apartment_id: data.apartment_id?.toString() // Ensure apartment_id is a string
           } as ResidentData;
         } else if (userRole === 'staff' || userRole === 'admin') {
           const { data, error } = await supabase
