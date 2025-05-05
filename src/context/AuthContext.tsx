@@ -9,7 +9,8 @@ export interface UserInfo {
   apartment?: string;
   status?: string;
   resident_id?: number;
-  userId?: number; // Adding this to match what's being used
+  userId?: number;
+  role?: 'admin' | 'staff' | 'resident';
 }
 
 interface AuthContextType {

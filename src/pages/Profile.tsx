@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import Layout from '@/components/layout/layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -13,35 +13,82 @@ import { useAuth } from '../context/AuthContext';
 interface ProfileProps {}
 
 const Profile: React.FC<ProfileProps> = () => {
-  const { currentUser } = useAuth();
+  const { currentUser, userRole } = useAuth();
 
   const { data: userData, isLoading } = useQuery({
-    queryKey: ['staff', currentUser?.userId],
+    queryKey: ['user-profile', currentUser?.userId, userRole],
     queryFn: async () => {
+      if (!currentUser?.userId) return null;
+      
       try {
-        if (!currentUser?.userId) throw new Error('No user ID');
+        // Different queries based on user role
+        if (userRole === 'resident') {
+          const { data, error } = await supabase
+            .from('resident')
+            .select('*')
+            .eq('email', currentUser.email)
+            .single();
+          
+          if (error) throw error;
+          return { 
+            ...data,
+            department: 'Resident',
+            joinDate: data.joining_date
+          };
+        } else if (userRole === 'staff' || userRole === 'admin') {
+          const { data, error } = await supabase
+            .from('staff')
+            .select('*')
+            .eq('staff_id', currentUser.id || 1) 
+            .single();
+          
+          if (error) {
+            console.error('Error fetching staff data:', error);
+            // Fallback to using name match if ID doesn't work
+            const { data: nameMatchData } = await supabase
+              .from('staff')
+              .select('*')
+              .eq('name', currentUser.name)
+              .single();
+              
+            if (nameMatchData) {
+              return {
+                ...nameMatchData,
+                department: userRole === 'admin' ? 'Administration' : 'Staff',
+                joinDate: nameMatchData.joining_date
+              };
+            }
+          }
+          
+          if (data) {
+            return {
+              ...data,
+              department: userRole === 'admin' ? 'Administration' : 'Staff',
+              joinDate: data.joining_date
+            };
+          }
+        }
         
-        // Attempt to find staff with matching user ID (simplified for demo)
-        const { data: staffData, error } = await supabase
-          .from('staff')
-          .select('*')
-          .eq('staff_id', 1) // In a real app, this would be related to the currentUser
-          .single();
-
-        if (error) throw error;
-        
-        return staffData;
+        // Fallback to current user data from auth context
+        return { 
+          name: currentUser.name || 'User',
+          email: currentUser.email,
+          contact_number: currentUser.contact,
+          role: userRole,
+          department: userRole === 'admin' ? 'Administration' : (userRole === 'staff' ? 'Staff' : 'Resident'),
+          joinDate: new Date().toISOString().split('T')[0]
+        };
       } catch (err) {
         console.error('Error fetching user data:', err);
         
-        // Mock data in case of error
-        return {
-          staff_id: 1,
-          name: 'Amit Kumar',
-          role: 'Manager',
-          contact_number: '9988776655',
-          joining_date: '2023-01-15',
-          salary: 45000
+        // Return current user data as fallback
+        return { 
+          name: currentUser.name || 'User',
+          email: currentUser.email,
+          contact_number: currentUser.contact,
+          role: userRole,
+          department: userRole === 'admin' ? 'Administration' : (userRole === 'staff' ? 'Staff' : 'Resident'),
+          joinDate: new Date().toISOString().split('T')[0]
         };
       }
     },
@@ -77,7 +124,7 @@ const Profile: React.FC<ProfileProps> = () => {
                 <AvatarFallback>{userData?.name?.[0]}</AvatarFallback>
               </Avatar>
               <h2 className="text-2xl font-semibold">{userData?.name}</h2>
-              <p className="text-muted-foreground">{userData?.role}</p>
+              <p className="text-muted-foreground">{userData?.role || userRole}</p>
               <Button variant="secondary" className="mt-6">Change Photo</Button>
             </CardContent>
           </Card>
@@ -92,7 +139,7 @@ const Profile: React.FC<ProfileProps> = () => {
                   <CalendarDays className="h-5 w-5 text-muted-foreground" />
                   <div>
                     <p className="text-sm text-muted-foreground">Joined</p>
-                    <p>{new Date(userData?.joining_date).toLocaleDateString()}</p>
+                    <p>{userData?.joinDate ? new Date(userData.joinDate).toLocaleDateString() : 'Not available'}</p>
                   </div>
                 </div>
                 
@@ -100,7 +147,7 @@ const Profile: React.FC<ProfileProps> = () => {
                   <Mail className="h-5 w-5 text-muted-foreground" />
                   <div>
                     <p className="text-sm text-muted-foreground">Email</p>
-                    <p>{userData?.contact_number ? `${userData.name.toLowerCase().replace(' ', '.')}@nirvaanheights.com` : 'Not provided'}</p>
+                    <p>{currentUser?.email || 'Not provided'}</p>
                   </div>
                 </div>
                 
@@ -111,17 +158,27 @@ const Profile: React.FC<ProfileProps> = () => {
                     <p>{userData?.contact_number || 'Not provided'}</p>
                   </div>
                 </div>
+
+                {userRole === 'resident' && (
+                  <div className="flex items-center gap-4">
+                    <Home className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Apartment</p>
+                      <p>A{userData?.apartment_id || 'Not assigned'}</p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <Separator />
               
               <div className="space-y-4">
-                <h3 className="font-medium">Position Details</h3>
+                <h3 className="font-medium">{userRole === 'resident' ? 'Residence Details' : 'Position Details'}</h3>
                 <div className="flex items-center gap-4">
                   <Building className="h-5 w-5 text-muted-foreground" />
                   <div>
-                    <p className="text-sm text-muted-foreground">Position</p>
-                    <p>{userData?.role || 'Not specified'}</p>
+                    <p className="text-sm text-muted-foreground">{userRole === 'resident' ? 'Status' : 'Position'}</p>
+                    <p>{userRole === 'resident' ? (userData?.status || 'Active') : (userData?.role || 'Not specified')}</p>
                   </div>
                 </div>
                 
@@ -129,7 +186,7 @@ const Profile: React.FC<ProfileProps> = () => {
                   <Home className="h-5 w-5 text-muted-foreground" />
                   <div>
                     <p className="text-sm text-muted-foreground">Department</p>
-                    <p>Administration</p>
+                    <p>{userData?.department || 'Not specified'}</p>
                   </div>
                 </div>
               </div>

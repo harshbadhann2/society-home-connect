@@ -1,7 +1,7 @@
 
 import React, { useState, useContext, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Bell, Menu } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Bell, Menu, LogOut } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -14,14 +14,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import AuthContext from '@/context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 const Header: React.FC = () => {
   const isMobile = useIsMobile();
   const { toggleSidebar } = useSidebarContext();
-  const { userRole, setIsAuthenticated, setUserRole, currentUser, setCurrentUser } = useContext(AuthContext);
+  const { userRole, setIsAuthenticated, setUserRole, currentUser, setCurrentUser } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  
   const [notifications, setNotifications] = useState([
     { id: 1, message: "New notice posted", time: "2 min ago" },
     { id: 2, message: "Payment reminder", time: "1 hour ago" },
@@ -38,10 +42,32 @@ const Header: React.FC = () => {
     else setTimeOfDay("Good Evening");
   }, []);
   
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    setUserRole(null);
-    setCurrentUser(null);
+  const handleLogout = async () => {
+    try {
+      // If using Supabase auth, sign out the user
+      await supabase.auth.signOut();
+      
+      // Clear auth context
+      setIsAuthenticated(false);
+      setUserRole(null);
+      setCurrentUser(null);
+      
+      // Show success message
+      toast({
+        title: "Logout Successful",
+        description: "You have been logged out successfully.",
+      });
+      
+      // Redirect to login page
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast({
+        title: "Logout Failed",
+        description: "There was an issue logging you out. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
   
   // Helper function to get user's name
@@ -99,6 +125,9 @@ const Header: React.FC = () => {
           <div className="hidden md:block text-sm font-medium">
             <span className="text-muted-foreground">{timeOfDay}! </span>
             <span className="text-foreground">{title} {firstName}</span>
+            {userRole && (
+              <span className="ml-1 text-xs text-muted-foreground">({userRole})</span>
+            )}
           </div>
           
           <DropdownMenu>
@@ -140,6 +169,11 @@ const Header: React.FC = () => {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>{getUserName()}</DropdownMenuLabel>
+              {currentUser?.email && (
+                <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+                  {currentUser.email}
+                </DropdownMenuLabel>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
                 <Link to="/profile">Profile</Link>
@@ -148,7 +182,10 @@ const Header: React.FC = () => {
                 <Link to="/settings">Settings</Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:text-destructive">
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

@@ -21,7 +21,7 @@ import {
   ClipboardList,
   Landmark
 } from 'lucide-react';
-import AuthContext from '@/context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 
 interface NavItemProps {
   icon: React.ElementType;
@@ -33,7 +33,7 @@ interface NavItemProps {
 }
 
 const NavItem: React.FC<NavItemProps> = ({ icon: Icon, label, href, active, roles, index }) => {
-  const { userRole } = useContext(AuthContext);
+  const { userRole } = useAuth();
 
   // If roles is defined and the current user's role is not in the allowed roles, don't render the item
   if (roles && !roles.includes(userRole)) {
@@ -59,14 +59,14 @@ const Sidebar: React.FC = () => {
   const location = useLocation();
   const { isOpen } = useSidebarContext();
   const isMobile = useIsMobile();
-  const { userRole } = useContext(AuthContext);
+  const { userRole } = useAuth();
   
   // Explicitly type the roles arrays with the correct union type
   const navItems = [
     { icon: Home, label: 'Dashboard', href: '/' },
-    { icon: Users, label: 'Residents', href: '/residents', roles: ['admin', 'staff'] as Array<'admin' | 'staff' | 'resident' | null> },
-    { icon: Building, label: 'Manage Properties', href: '/properties' },
-    { icon: Landmark, label: 'Manage Wings', href: '/wings' },
+    { icon: Users, label: 'Residents', href: '/residents', roles: ['admin'] as Array<'admin' | 'staff' | 'resident' | null> },
+    { icon: Building, label: 'Manage Properties', href: '/properties', roles: ['admin'] as Array<'admin' | 'staff' | 'resident' | null> },
+    { icon: Landmark, label: 'Manage Wings', href: '/wings', roles: ['admin'] as Array<'admin' | 'staff' | 'resident' | null> },
     { icon: Bed, label: 'Amenities', href: '/amenities' },
     { icon: ParkingMeter, label: 'Parking', href: '/parking' },
     { icon: Truck, label: 'Delivery Records', href: '/delivery-records' },
