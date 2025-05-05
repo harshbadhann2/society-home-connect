@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Staff, Housekeeping } from '@/types/database';
+import { Staff } from '@/types/database';
 import { 
   Select,
   SelectContent,
@@ -37,14 +37,13 @@ const AssignTaskDialog = ({ open, onOpenChange, staffMember }: AssignTaskDialogP
     return format(addDays(new Date(), daysToAdd), 'yyyy-MM-dd');
   };
   
-  const [formData, setFormData] = useState<Omit<Housekeeping, 'id' | 'created_at'>>({
+  const [formData, setFormData] = useState({
     area: '',
-    task_description: '',
-    assigned_staff: staffMember?.id || 0,
-    frequency: 'Daily',
-    status: 'Scheduled',
-    last_completed: getCurrentDate(),
-    next_scheduled: getNextDate('Daily'),
+    service_type: '',
+    staff_id: staffMember?.staff_id || 0,
+    resident_id: null,
+    cleaning_status: 'Scheduled',
+    cleaning_date: getCurrentDate(),
   });
 
   // Update form if staffMember changes
@@ -52,7 +51,7 @@ const AssignTaskDialog = ({ open, onOpenChange, staffMember }: AssignTaskDialogP
     if (staffMember) {
       setFormData(prev => ({
         ...prev,
-        assigned_staff: staffMember.id,
+        staff_id: staffMember.staff_id,
       }));
     }
   });
@@ -63,12 +62,7 @@ const AssignTaskDialog = ({ open, onOpenChange, staffMember }: AssignTaskDialogP
   };
 
   const handleSelectChange = (field: string, value: string) => {
-    setFormData(prev => ({ 
-      ...prev, 
-      [field]: value,
-      // Update next_scheduled based on frequency
-      ...(field === 'frequency' ? { next_scheduled: getNextDate(value) } : {})
-    }));
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -89,12 +83,13 @@ const AssignTaskDialog = ({ open, onOpenChange, staffMember }: AssignTaskDialogP
       // Try to add task to Supabase
       const { data, error } = await supabase
         .from('housekeeping')
-        .insert([{ 
-          ...formData, 
-          assigned_staff: staffMember.id,
-          created_at: new Date().toISOString() 
-        }])
-        .select();
+        .insert({
+          staff_id: staffMember.staff_id,
+          area: formData.area,
+          service_type: formData.service_type,
+          cleaning_status: formData.cleaning_status,
+          cleaning_date: formData.cleaning_date,
+        });
 
       if (error) {
         if (error.message.includes("does not exist")) {
@@ -152,12 +147,12 @@ const AssignTaskDialog = ({ open, onOpenChange, staffMember }: AssignTaskDialogP
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="task_description">Task Description</Label>
+              <Label htmlFor="service_type">Service Type</Label>
               <Textarea 
-                id="task_description" 
-                name="task_description" 
+                id="service_type" 
+                name="service_type" 
                 placeholder="Detailed description of the task" 
-                value={formData.task_description} 
+                value={formData.service_type} 
                 onChange={handleChange} 
                 required 
                 className="min-h-[80px]"
@@ -165,29 +160,12 @@ const AssignTaskDialog = ({ open, onOpenChange, staffMember }: AssignTaskDialogP
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="frequency">Frequency</Label>
+                <Label htmlFor="cleaning_status">Status</Label>
                 <Select 
-                  value={formData.frequency} 
-                  onValueChange={(value) => handleSelectChange('frequency', value)}
+                  value={formData.cleaning_status} 
+                  onValueChange={(value) => handleSelectChange('cleaning_status', value)}
                 >
-                  <SelectTrigger id="frequency">
-                    <SelectValue placeholder="Select frequency" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Daily">Daily</SelectItem>
-                    <SelectItem value="Weekly">Weekly</SelectItem>
-                    <SelectItem value="Bi-weekly">Bi-weekly</SelectItem>
-                    <SelectItem value="Monthly">Monthly</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
-                <Select 
-                  value={formData.status} 
-                  onValueChange={(value) => handleSelectChange('status', value)}
-                >
-                  <SelectTrigger id="status">
+                  <SelectTrigger id="cleaning_status">
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -198,23 +176,12 @@ const AssignTaskDialog = ({ open, onOpenChange, staffMember }: AssignTaskDialogP
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="last_completed">Last Completed</Label>
+                <Label htmlFor="cleaning_date">Cleaning Date</Label>
                 <Input 
-                  id="last_completed" 
-                  name="last_completed" 
+                  id="cleaning_date" 
+                  name="cleaning_date" 
                   type="date" 
-                  value={formData.last_completed} 
-                  onChange={handleChange} 
-                  required 
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="next_scheduled">Next Scheduled</Label>
-                <Input 
-                  id="next_scheduled" 
-                  name="next_scheduled" 
-                  type="date" 
-                  value={formData.next_scheduled} 
+                  value={formData.cleaning_date} 
                   onChange={handleChange} 
                   required 
                 />
