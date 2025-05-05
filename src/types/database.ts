@@ -1,225 +1,141 @@
 // Custom database types that extend the auto-generated Supabase types
 import { Database as GeneratedDatabase } from '@/integrations/supabase/types';
 
-// Extend the existing Database type with your tables
-export interface Database extends GeneratedDatabase {
-  public: {
-    Tables: {
-      residents: {
-        Row: {
-          id: number;
-          name: string;
-          apartment: string;
-          status: string;
-          contact: string;
-          email: string;
-          created_at?: string;
-        };
-        Insert: {
-          name: string;
-          apartment: string;
-          status: string;
-          contact: string;
-          email: string;
-          created_at?: string;
-        };
-        Update: {
-          name?: string;
-          apartment?: string;
-          status?: string;
-          contact?: string;
-          email?: string;
-          created_at?: string;
-        };
-      };
-      amenities: {
-        Row: {
-          id: number;
-          name: string;
-          location: string;
-          capacity: number;
-          opening_hours: string;
-          status: string;
-          maintenance_day: string;
-          created_at?: string;
-        };
-        Insert: {
-          name: string;
-          location: string;
-          capacity: number;
-          opening_hours: string;
-          status: string;
-          maintenance_day: string;
-          created_at?: string;
-        };
-        Update: {
-          name?: string;
-          location?: string;
-          capacity?: number;
-          opening_hours?: string;
-          status?: string;
-          maintenance_day?: string;
-          created_at?: string;
-        };
-      };
-      parking: {
-        Row: {
-          id: number;
-          spot_number: string;
-          vehicle_type: string;
-          vehicle_number: string;
-          resident_id: number;
-          status: string;
-          created_at?: string;
-        };
-        Insert: {
-          spot_number: string;
-          vehicle_type: string;
-          vehicle_number: string;
-          resident_id: number;
-          status: string;
-          created_at?: string;
-        };
-        Update: {
-          spot_number?: string;
-          vehicle_type?: string;
-          vehicle_number?: string;
-          resident_id?: number;
-          status?: string;
-          created_at?: string;
-        };
-      };
-      delivery_records: {
-        Row: {
-          id: number;
-          package_id: string;
-          resident_id: number;
-          delivery_date: string;
-          delivery_time: string;
-          courier_name: string;
-          status: string;
-          created_at?: string;
-        };
-        Insert: {
-          package_id: string;
-          resident_id: number;
-          delivery_date: string;
-          delivery_time: string;
-          courier_name: string;
-          status: string;
-          created_at?: string;
-        };
-        Update: {
-          package_id?: string;
-          resident_id?: number;
-          delivery_date?: string;
-          delivery_time?: string;
-          courier_name?: string;
-          status?: string;
-          created_at?: string;
-        };
-      };
-      staff: {
-        Row: {
-          id: number;
-          name: string;
-          position: string;
-          contact: string;
-          email: string;
-          joining_date: string;
-          status: string;
-          created_at?: string;
-        };
-        Insert: {
-          name: string;
-          position: string;
-          contact: string;
-          email: string;
-          joining_date: string;
-          status: string;
-          created_at?: string;
-        };
-        Update: {
-          name?: string;
-          position?: string;
-          contact?: string;
-          email?: string;
-          joining_date?: string;
-          status?: string;
-          created_at?: string;
-        };
-      };
-      users: {
-        Row: {
-          id: number;
-          email: string;
-          password: string;
-          role: string;
-          created_at?: string;
-        };
-        Insert: {
-          email: string;
-          password: string;
-          role: string;
-          created_at?: string;
-        };
-        Update: {
-          email?: string;
-          password?: string;
-          role?: string;
-          created_at?: string;
-        };
-      };
-      housekeeping: {
-        Row: {
-          id: number;
-          area: string;
-          task_description: string;
-          assigned_staff: number;
-          frequency: string;
-          status: string;
-          last_completed: string;
-          next_scheduled: string;
-          created_at?: string;
-        };
-        Insert: {
-          area: string;
-          task_description: string;
-          assigned_staff: number;
-          frequency: string;
-          status: string;
-          last_completed: string;
-          next_scheduled: string;
-          created_at?: string;
-        };
-        Update: {
-          area?: string;
-          task_description?: string;
-          assigned_staff?: number;
-          frequency?: string;
-          status?: string;
-          last_completed?: string;
-          next_scheduled?: string;
-          created_at?: string;
-        };
-      };
-      // Add other tables as needed
-    };
-    Views: GeneratedDatabase['public']['Views'];
-    Functions: GeneratedDatabase['public']['Functions'];
-    Enums: GeneratedDatabase['public']['Enums'];
-    CompositeTypes: GeneratedDatabase['public']['CompositeTypes'];
-  };
-}
+// Helper type definitions that map our local model names to Supabase schema
+export type Resident = {
+  id: number;
+  name: string;
+  apartment: string;
+  status: string;
+  contact: string;
+  email: string;
+  created_at?: string;
+};
 
-// Helper type to access the residents table row type
-export type Resident = Database['public']['Tables']['residents']['Row'];
-export type Amenity = Database['public']['Tables']['amenities']['Row'];
-export type Parking = Database['public']['Tables']['parking']['Row'];
-export type DeliveryRecord = Database['public']['Tables']['delivery_records']['Row'];
-export type Staff = Database['public']['Tables']['staff']['Row'];
-export type User = Database['public']['Tables']['users']['Row'];
-export type Housekeeping = Database['public']['Tables']['housekeeping']['Row'];
+export type Amenity = {
+  id: number;
+  name: string;
+  location: string;
+  capacity: number;
+  opening_hours: string;
+  status: string;
+  maintenance_day: string;
+  created_at?: string;
+};
+
+export type Parking = {
+  id: number;
+  spot_number: string;
+  vehicle_type: string;
+  vehicle_number: string;
+  resident_id: number;
+  status: string;
+  created_at?: string;
+};
+
+export type DeliveryRecord = {
+  id: number;
+  package_id: string;
+  resident_id: number;
+  delivery_date: string;
+  delivery_time: string;
+  courier_name: string;
+  status: string;
+  created_at?: string;
+};
+
+export type Staff = {
+  id: number;
+  name: string;
+  position: string;
+  contact: string;
+  email: string;
+  joining_date: string;
+  status: string;
+  created_at?: string;
+};
+
+export type User = {
+  id: number;
+  email: string;
+  password: string;
+  role: string;
+  created_at?: string;
+};
+
+export type Housekeeping = {
+  id: number;
+  area: string;
+  task_description: string;
+  assigned_staff: number;
+  frequency: string;
+  status: string;
+  last_completed: string;
+  next_scheduled: string;
+  created_at?: string;
+};
+
+export type Wing = {
+  id: number;
+  name: string;
+  floors: number;
+  apartments: number;
+};
+
+// Instead of extending/overriding the database schema, we'll keep the types separate
+// and provide conversion functions for mapping between the schemas
+export type { Database } from '@/integrations/supabase/types';
+
+// Map Supabase resident data to our Resident type
+export const mapToResident = (data: any): Resident => {
+  return {
+    id: data.resident_id,
+    name: data.name || '',
+    apartment: data.apartment_id?.toString() || '',
+    status: data.status || '',
+    contact: data.contact_number || '',
+    email: data.email || '',
+    created_at: data.joining_date
+  };
+};
+
+// Map Supabase staff data to our Staff type
+export const mapToStaff = (data: any): Staff => {
+  return {
+    id: data.staff_id,
+    name: data.name || '',
+    position: data.role || '',
+    contact: data.contact_number || '',
+    email: '', // Not in the schema, using empty string
+    joining_date: data.joining_date || '',
+    status: 'Active', // Default value since it doesn't exist in schema
+    created_at: data.joining_date
+  };
+};
+
+// Map Supabase wing data to our Wing type
+export const mapToWing = (data: any): Wing => {
+  return {
+    id: data.wing_id,
+    name: data.wing_name || '',
+    floors: data.total_floors || 0,
+    apartments: data.total_apartments || 0
+  };
+};
+
+// Map Supabase delivery data to our DeliveryRecord type
+export const mapToDeliveryRecord = (data: any): DeliveryRecord => {
+  return {
+    id: data.delivery_id,
+    package_id: data.delivery_id?.toString() || '',
+    resident_id: data.resident_id || 0,
+    delivery_date: data.delivery_date || '',
+    delivery_time: data.delivery_date || '',
+    courier_name: data.courier_company_name || '',
+    status: data.delivery_status || '',
+    created_at: data.delivery_date
+  };
+};
 
 // Mock data for residents to use when the database table doesn't exist yet
 export const mockResidents: Resident[] = [
