@@ -105,7 +105,7 @@ export const initializeDatabase = async () => {
             name: staff.name,
             email: staff.email,
             contact: staff.contact,
-            role: staff.role,
+            position: staff.position, // Using position instead of role
             status: staff.status
           });
           
