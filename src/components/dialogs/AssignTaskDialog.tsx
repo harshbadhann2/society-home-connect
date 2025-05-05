@@ -40,7 +40,7 @@ const AssignTaskDialog = ({ open, onOpenChange, staffMember }: AssignTaskDialogP
   const [formData, setFormData] = useState({
     area: '',
     service_type: '',
-    staff_id: staffMember?.staff_id || 0,
+    staff_id: staffMember?.id || 0, // Changed from staff_id to id
     resident_id: null,
     cleaning_status: 'Scheduled',
     cleaning_date: getCurrentDate(),
@@ -51,7 +51,7 @@ const AssignTaskDialog = ({ open, onOpenChange, staffMember }: AssignTaskDialogP
     if (staffMember) {
       setFormData(prev => ({
         ...prev,
-        staff_id: staffMember.staff_id,
+        staff_id: staffMember.id, // Changed from staff_id to id
       }));
     }
   });
@@ -84,7 +84,7 @@ const AssignTaskDialog = ({ open, onOpenChange, staffMember }: AssignTaskDialogP
       const { data, error } = await supabase
         .from('housekeeping')
         .insert({
-          staff_id: staffMember.staff_id,
+          staff_id: staffMember.id, // Changed from staff_id to id
           area: formData.area,
           service_type: formData.service_type,
           cleaning_status: formData.cleaning_status,

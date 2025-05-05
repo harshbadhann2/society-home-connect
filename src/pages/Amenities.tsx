@@ -44,29 +44,38 @@ const getStatusColor = (status: string | null | undefined) => {
 const mockBookings = [
   {
     id: 1,
+    amenity_id: 1, // Added to match structure expected in formatBookings
+    resident_id: 1, // Added to match structure expected in formatBookings
     facility: 'Community Hall',
     bookedBy: 'John Doe',
     apartment: 'A-101',
     date: '2025-05-10',
     time: '6:00 PM - 9:00 PM',
+    time_slot: '6:00 PM - 9:00 PM', // Added to match structure expected in formatBookings
     purpose: 'Birthday Party',
   },
   {
     id: 2,
+    amenity_id: 4, // Added to match structure expected in formatBookings
+    resident_id: 3, // Added to match structure expected in formatBookings
     facility: 'Tennis Court',
     bookedBy: 'Robert Johnson',
     apartment: 'C-303',
     date: '2025-05-05',
     time: '7:00 AM - 9:00 AM',
+    time_slot: '7:00 AM - 9:00 AM', // Added to match structure expected in formatBookings
     purpose: 'Practice Session',
   },
   {
     id: 3,
+    amenity_id: 1, // Added to match structure expected in formatBookings
+    resident_id: 5, // Added to match structure expected in formatBookings
     facility: 'Community Hall',
     bookedBy: 'Society Committee',
     apartment: 'N/A',
     date: '2025-05-15',
     time: '5:00 PM - 8:00 PM',
+    time_slot: '5:00 PM - 8:00 PM', // Added to match structure expected in formatBookings
     purpose: 'Annual General Meeting',
   },
 ];
@@ -171,6 +180,12 @@ const Amenities: React.FC = () => {
   };
 
   const formatBookings = bookings?.map(booking => {
+    // Check if booking is already in the expected format or needs conversion
+    if (booking.facility && booking.bookedBy) {
+      return booking;
+    }
+    
+    // For data coming from the database, convert it
     const residentInfo = getResidentInfo(booking.resident_id);
     return {
       id: booking.id,

@@ -36,13 +36,12 @@ export function CreateNoticeDialog({ open, onOpenChange, onAdd }: CreateNoticeDi
     setIsSubmitting(true);
     try {
       const { error } = await supabase
-        .from('notices')
+        .from('notice_board') // Changed from 'notices' to 'notice_board'
         .insert({
           title,
-          content,
-          category,
-          priority,
-          date: new Date().toISOString(),
+          message: content, // Changed from 'content' to 'message'
+          posted_by: category, // Using posted_by for category
+          posted_date: new Date().toISOString(),
         });
 
       if (error) throw error;
