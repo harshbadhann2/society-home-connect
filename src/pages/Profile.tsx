@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import Layout from '@/components/layout/layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -41,7 +40,7 @@ interface FallbackData {
   name: string;
   email?: string;
   contact_number?: string;
-  role: string; // Adding role property to FallbackData as it might be referenced
+  role: string; // Adding role property to FallbackData
   department: string;
   joinDate: string;
 }
@@ -119,7 +118,7 @@ const Profile: React.FC<ProfileProps> = () => {
           name: currentUser.name || 'User',
           email: currentUser.email,
           contact_number: currentUser.contact,
-          role: userRole,
+          role: userRole || 'resident',
           department: userRole === 'admin' ? 'Administration' : (userRole === 'staff' ? 'Staff' : 'Resident'),
           joinDate: new Date().toISOString().split('T')[0]
         } as FallbackData;
@@ -131,7 +130,7 @@ const Profile: React.FC<ProfileProps> = () => {
           name: currentUser.name || 'User',
           email: currentUser.email,
           contact_number: currentUser.contact,
-          role: userRole,
+          role: userRole || 'resident',
           department: userRole === 'admin' ? 'Administration' : (userRole === 'staff' ? 'Staff' : 'Resident'),
           joinDate: new Date().toISOString().split('T')[0]
         } as FallbackData;
