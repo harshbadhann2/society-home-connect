@@ -41,7 +41,7 @@ interface FallbackData {
   name: string;
   email?: string;
   contact_number?: string;
-  role?: string;
+  role: string; // Adding role property to FallbackData as it might be referenced
   department: string;
   joinDate: string;
 }
@@ -169,7 +169,7 @@ const Profile: React.FC<ProfileProps> = () => {
                 <AvatarFallback>{userData?.name?.[0]}</AvatarFallback>
               </Avatar>
               <h2 className="text-2xl font-semibold">{userData?.name}</h2>
-              <p className="text-muted-foreground">{userData?.role || userRole}</p>
+              <p className="text-muted-foreground">{userRole}</p>
               <Button variant="secondary" className="mt-6">Change Photo</Button>
             </CardContent>
           </Card>
@@ -224,7 +224,8 @@ const Profile: React.FC<ProfileProps> = () => {
                   <div>
                     <p className="text-sm text-muted-foreground">{userRole === 'resident' ? 'Status' : 'Position'}</p>
                     <p>{isResidentData(userData!) ? userData.status : 
-                        isStaffData(userData!) ? userData.role : 'Not specified'}</p>
+                        isStaffData(userData!) ? userData.role : 
+                        'role' in userData! ? userData.role : 'Not specified'}</p>
                   </div>
                 </div>
                 

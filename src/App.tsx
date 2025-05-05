@@ -123,7 +123,7 @@ const App = () => {
                   resident_id: residentData.resident_id,
                   name: residentData.name,
                   contact: residentData.contact_number,
-                  apartment: residentData.apartment_id?.toString(), // Convert to string
+                  apartment: residentData.apartment_id?.toString(), // Ensure it's a string
                   status: residentData.status,
                 }));
               }
