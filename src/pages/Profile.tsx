@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+
+import React from 'react';
 import Layout from '@/components/layout/layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -40,7 +41,7 @@ interface FallbackData {
   name: string;
   email?: string;
   contact_number?: string;
-  role: string; // Adding role property to FallbackData
+  role: string; // Add role property to FallbackData
   department: string;
   joinDate: string;
 }
