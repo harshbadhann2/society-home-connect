@@ -6,7 +6,7 @@ export interface UserInfo {
   name?: string;
   email?: string;
   contact?: string;
-  apartment?: string;
+  apartment?: string; // Changed from number to string for consistency
   status?: string;
   resident_id?: number;
   userId?: number;

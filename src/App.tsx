@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -119,11 +118,11 @@ const App = () => {
                 
               if (residentData) {
                 setCurrentUser(prevState => ({
-                  ...prevState,
+                  ...prevState!,
                   resident_id: residentData.resident_id,
                   name: residentData.name,
                   contact: residentData.contact_number,
-                  apartment: residentData.apartment_id,
+                  apartment: residentData.apartment_id?.toString(), // Convert to string
                   status: residentData.status,
                 }));
               }
@@ -140,7 +139,7 @@ const App = () => {
                 
               if (staffData) {
                 setCurrentUser(prevState => ({
-                  ...prevState,
+                  ...prevState!,
                   id: staffData.staff_id,
                   name: staffData.name,
                   contact: staffData.contact_number,

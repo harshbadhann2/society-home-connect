@@ -178,7 +178,8 @@ const Profile: React.FC<ProfileProps> = () => {
                   <Building className="h-5 w-5 text-muted-foreground" />
                   <div>
                     <p className="text-sm text-muted-foreground">{userRole === 'resident' ? 'Status' : 'Position'}</p>
-                    <p>{userRole === 'resident' ? (userData?.status || 'Active') : (userData?.role || 'Not specified')}</p>
+                    <p>{userRole === 'resident' && userData?.status ? userData.status : 
+                       userRole !== 'resident' && userData?.role ? userData.role : 'Not specified'}</p>
                   </div>
                 </div>
                 
