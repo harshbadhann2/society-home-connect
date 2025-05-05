@@ -12,6 +12,51 @@ import { useAuth } from '../context/AuthContext';
 
 interface ProfileProps {}
 
+// Define clearer types for different user profile data
+interface ResidentData {
+  name: string;
+  email: string;
+  contact_number: string;
+  apartment_id?: number;
+  status: string;
+  resident_id: number;
+  joining_date: string;
+  department: string;
+  joinDate: string;
+}
+
+interface StaffData {
+  name: string;
+  contact_number: string;
+  staff_id: number;
+  role: string;
+  salary: number;
+  joining_date: string;
+  department: string;
+  joinDate: string;
+  email?: string;
+}
+
+interface FallbackData {
+  name: string;
+  email?: string;
+  contact_number?: string;
+  role?: string;
+  department: string;
+  joinDate: string;
+}
+
+type UserProfileData = ResidentData | StaffData | FallbackData;
+
+// Type guard functions to check what type of data we have
+function isResidentData(data: UserProfileData): data is ResidentData {
+  return 'resident_id' in data && 'status' in data;
+}
+
+function isStaffData(data: UserProfileData): data is StaffData {
+  return 'staff_id' in data && 'role' in data;
+}
+
 const Profile: React.FC<ProfileProps> = () => {
   const { currentUser, userRole } = useAuth();
 
@@ -34,7 +79,7 @@ const Profile: React.FC<ProfileProps> = () => {
             ...data,
             department: 'Resident',
             joinDate: data.joining_date
-          };
+          } as ResidentData;
         } else if (userRole === 'staff' || userRole === 'admin') {
           const { data, error } = await supabase
             .from('staff')
@@ -56,7 +101,7 @@ const Profile: React.FC<ProfileProps> = () => {
                 ...nameMatchData,
                 department: userRole === 'admin' ? 'Administration' : 'Staff',
                 joinDate: nameMatchData.joining_date
-              };
+              } as StaffData;
             }
           }
           
@@ -65,7 +110,7 @@ const Profile: React.FC<ProfileProps> = () => {
               ...data,
               department: userRole === 'admin' ? 'Administration' : 'Staff',
               joinDate: data.joining_date
-            };
+            } as StaffData;
           }
         }
         
@@ -77,7 +122,7 @@ const Profile: React.FC<ProfileProps> = () => {
           role: userRole,
           department: userRole === 'admin' ? 'Administration' : (userRole === 'staff' ? 'Staff' : 'Resident'),
           joinDate: new Date().toISOString().split('T')[0]
-        };
+        } as FallbackData;
       } catch (err) {
         console.error('Error fetching user data:', err);
         
@@ -89,7 +134,7 @@ const Profile: React.FC<ProfileProps> = () => {
           role: userRole,
           department: userRole === 'admin' ? 'Administration' : (userRole === 'staff' ? 'Staff' : 'Resident'),
           joinDate: new Date().toISOString().split('T')[0]
-        };
+        } as FallbackData;
       }
     },
     enabled: !!currentUser?.userId
@@ -159,7 +204,7 @@ const Profile: React.FC<ProfileProps> = () => {
                   </div>
                 </div>
 
-                {userRole === 'resident' && (
+                {userRole === 'resident' && isResidentData(userData!) && (
                   <div className="flex items-center gap-4">
                     <Home className="h-5 w-5 text-muted-foreground" />
                     <div>
@@ -178,8 +223,8 @@ const Profile: React.FC<ProfileProps> = () => {
                   <Building className="h-5 w-5 text-muted-foreground" />
                   <div>
                     <p className="text-sm text-muted-foreground">{userRole === 'resident' ? 'Status' : 'Position'}</p>
-                    <p>{userRole === 'resident' && userData?.status ? userData.status : 
-                       userRole !== 'resident' && userData?.role ? userData.role : 'Not specified'}</p>
+                    <p>{isResidentData(userData!) ? userData.status : 
+                        isStaffData(userData!) ? userData.role : 'Not specified'}</p>
                   </div>
                 </div>
                 
