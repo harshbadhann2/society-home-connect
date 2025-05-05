@@ -32,7 +32,11 @@ const LoginPage: React.FC = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
-  const { setIsAuthenticated, setUserRole } = useContext(AuthContext);
+  const auth = useContext(AuthContext);
+  
+  // Type-safe setters
+  const setIsAuthenticated = auth.setIsAuthenticated;
+  const setUserRole = auth.setUserRole;
 
   useEffect(() => {
     // Check if there's a default tab in the location state
@@ -52,7 +56,7 @@ const LoginPage: React.FC = () => {
         .from('users')
         .select('*')
         .eq('email', email)
-        .eq('password', password) // NOTE: In a real application, never store passwords in plaintext
+        .eq('password_hash', password) // NOTE: In a real application, never store passwords in plaintext
         .eq('role', 'resident')
         .single();
 
@@ -115,7 +119,7 @@ const LoginPage: React.FC = () => {
         .from('users')
         .select('*')
         .eq('email', email)
-        .eq('password', password) // NOTE: In a real application, never store passwords in plaintext
+        .eq('password_hash', password) // NOTE: In a real application, never store passwords in plaintext
         .eq('role', 'staff')
         .single();
 
@@ -178,7 +182,7 @@ const LoginPage: React.FC = () => {
         .from('users')
         .select('*')
         .eq('email', email)
-        .eq('password', password) // NOTE: In a real application, never store passwords in plaintext
+        .eq('password_hash', password) // NOTE: In a real application, never store passwords in plaintext
         .eq('role', 'admin')
         .single();
 

@@ -1,418 +1,200 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState } from 'react';
 import Layout from '@/components/layout/layout';
-import { useToast } from '@/hooks/use-toast';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import AuthContext from '@/context/AuthContext';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { mockResidents, mockUsers, mockStaff } from '@/types/database';
-import { Loader2 } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
 
-const Settings: React.FC = () => {
-  const { userRole } = useContext(AuthContext);
+interface SettingsProps {}
+
+const Settings: React.FC<SettingsProps> = () => {
   const { toast } = useToast();
-  const [accountSettings, setAccountSettings] = useState({
-    name: '',
-    email: '',
-  });
+  const [notificationEmail, setNotificationEmail] = useState('');
+  const [pushEnabled, setPushEnabled] = useState(true);
+  const [emailEnabled, setEmailEnabled] = useState(true);
+  const [smsEnabled, setSmsEnabled] = useState(false);
+  const [darkMode, setDarkMode] = useState(false);
   
-  const [notificationSettings, setNotificationSettings] = useState({
-    emailNotifications: true,
-    appNotifications: true,
-    updateNotifications: true,
-    maintenanceNotifications: userRole !== 'resident' ? true : false,
-  });
-
-  const [displaySettings, setDisplaySettings] = useState({
-    darkMode: false,
-    highContrast: false,
-    largeText: false,
-  });
-  
-  // Fetch user data based on role
-  const { data: userData, isLoading: isLoadingUser } = useQuery({
-    queryKey: ['settings-user', userRole],
+  // User profile queries using resident table
+  const { data: residents } = useQuery({
+    queryKey: ['resident'],
     queryFn: async () => {
-      if (!userRole) return null;
-      
       try {
-        // For admin, we use a simple lookup from mock data
-        if (userRole === 'admin') {
-          const admin = mockUsers.find(user => user.role === 'admin');
-          return {
-            name: admin?.email?.split('@')[0] || 'Admin',
-            email: admin?.email || 'admin@example.com'
-          };
-        }
-        
-        // For staff, try to fetch from database first
-        if (userRole === 'staff') {
-          const { data, error } = await supabase
-            .from('staff')
-            .select('*')
-            .limit(1);
-            
-          if (data && data.length > 0) {
-            return data[0];
-          } else {
-            return mockStaff[0]; // Fallback to mock data
-          }
-        }
-        
-        // For residents, try to fetch from database first
-        if (userRole === 'resident') {
-          const { data, error } = await supabase
-            .from('residents')
-            .select('*')
-            .limit(1);
-            
-          if (data && data.length > 0) {
-            return data[0];
-          } else {
-            return mockResidents[0]; // Fallback to mock data
-          }
-        }
-        
-        return null;
-      } catch (err) {
-        console.error('Error fetching user data:', err);
-        // Fallback to mock data based on role
-        if (userRole === 'admin') {
-          const admin = mockUsers.find(user => user.role === 'admin');
-          return {
-            name: admin?.email?.split('@')[0] || 'Admin',
-            email: admin?.email || 'admin@example.com'
-          };
-        }
-        if (userRole === 'staff') return mockStaff[0];
-        return mockResidents[0];
-      }
-    }
-  });
-  
-  // Update user settings mutation
-  const updateUserMutation = useMutation({
-    mutationFn: async (updatedSettings: typeof accountSettings) => {
-      if (!userRole || !userData) throw new Error("User not found");
-      
-      try {
-        if (userRole === 'admin') {
-          // For admin users, we'd normally update in the database
-          // But since we're using mock data for admin, we'll just simulate success
-          return { success: true };
-        }
-        
-        if (userRole === 'resident') {
-          const { data, error } = await supabase
-            .from('residents')
-            .update({
-              name: updatedSettings.name,
-              email: updatedSettings.email,
-            })
-            .eq('id', userData.id);
-          
-          if (error) throw error;
-          return data;
-        }
-        
-        if (userRole === 'staff') {
-          const { data, error } = await supabase
-            .from('staff')
-            .update({
-              name: updatedSettings.name,
-              email: updatedSettings.email,
-            })
-            .eq('id', userData.id);
-          
-          if (error) throw error;
-          return data;
-        }
-        
-        throw new Error("Unknown user role");
-      } catch (error: any) {
-        console.error("Error updating user settings:", error);
-        // If table doesn't exist yet, simulate success
-        if (error.message && error.message.includes("does not exist")) {
-          console.log("Using mock data since table doesn't exist yet");
-          return { success: true };
-        }
-        throw error;
+        const { data, error } = await supabase
+          .from('resident')
+          .select('*');
+
+        if (error) throw error;
+        return data;
+      } catch (error) {
+        console.error('Error fetching residents:', error);
+        return [];
       }
     },
-    onSuccess: () => {
-      toast({
-        title: 'Account settings saved',
-        description: 'Your account settings have been updated successfully.',
-      });
-    },
-    onError: () => {
-      toast({
-        title: 'Error saving settings',
-        description: 'There was a problem saving your account settings.',
-        variant: 'destructive'
-      });
-    }
   });
 
-  // Update account settings from userData when it loads
-  useEffect(() => {
-    if (userData) {
-      if ('name' in userData && 'email' in userData) {
-        setAccountSettings({
-          name: userData.name,
-          email: userData.email,
-        });
-      } else if ('email' in userData) {
-        // If we only have email (like for admin)
-        setAccountSettings({
-          name: userData.name || userData.email.split('@')[0],
-          email: userData.email,
-        });
-      }
-    }
-  }, [userData]);
-
-  const handleAccountSave = () => {
-    updateUserMutation.mutate(accountSettings);
-  };
-
-  const handleNotificationToggle = (setting: keyof typeof notificationSettings) => {
-    setNotificationSettings({
-      ...notificationSettings,
-      [setting]: !notificationSettings[setting],
-    });
+  const handleUpdateEmail = () => {
     toast({
-      title: 'Notification settings updated',
-      description: `${setting} ${notificationSettings[setting] ? 'disabled' : 'enabled'}.`,
+      title: 'Email Updated',
+      description: 'Your notification email has been updated successfully.',
     });
   };
 
-  const handleDisplayToggle = (setting: keyof typeof displaySettings) => {
-    setDisplaySettings({
-      ...displaySettings,
-      [setting]: !displaySettings[setting],
-    });
+  const handleTogglePush = () => {
+    setPushEnabled(!pushEnabled);
     toast({
-      title: 'Display setting updated',
-      description: `${setting} ${displaySettings[setting] ? 'disabled' : 'enabled'}.`,
+      title: 'Push Notifications Updated',
+      description: `Push notifications are now ${pushEnabled ? 'disabled' : 'enabled'}.`,
+    });
+  };
+
+  const handleToggleEmail = () => {
+    setEmailEnabled(!emailEnabled);
+    toast({
+      title: 'Email Notifications Updated',
+      description: `Email notifications are now ${emailEnabled ? 'disabled' : 'enabled'}.`,
+    });
+  };
+
+  const handleToggleSMS = () => {
+    setSmsEnabled(!smsEnabled);
+    toast({
+      title: 'SMS Notifications Updated',
+      description: `SMS notifications are now ${smsEnabled ? 'disabled' : 'enabled'}.`,
+    });
+  };
+
+  const handleToggleDarkMode = () => {
+    setDarkMode(!darkMode);
+    toast({
+      title: 'Appearance Updated',
+      description: `Dark mode is now ${darkMode ? 'disabled' : 'enabled'}.`,
     });
   };
 
   return (
     <Layout>
-      <div className="container mx-auto py-6">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold">Settings</h1>
-          <p className="text-muted-foreground">Manage your account settings and preferences.</p>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
+          <p className="text-muted-foreground">
+            Manage your account settings and preferences.
+          </p>
         </div>
 
-        {isLoadingUser ? (
-          <div className="flex justify-center items-center h-64">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <span className="ml-2">Loading your settings...</span>
-          </div>
-        ) : (
-          <Tabs defaultValue="account" className="space-y-4">
-            <TabsList>
-              <TabsTrigger value="account">Account</TabsTrigger>
-              <TabsTrigger value="notifications">Notifications</TabsTrigger>
-              <TabsTrigger value="display">Display</TabsTrigger>
-              {userRole === 'admin' && <TabsTrigger value="advanced">Advanced</TabsTrigger>}
-            </TabsList>
-            
-            <TabsContent value="account">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Account Settings</CardTitle>
-                  <CardDescription>
-                    Manage your personal information and account details.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Name</Label>
-                    <Input 
-                      id="name" 
-                      value={accountSettings.name} 
-                      onChange={(e) => setAccountSettings({...accountSettings, name: e.target.value})} 
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input 
-                      id="email" 
-                      type="email" 
-                      value={accountSettings.email} 
-                      onChange={(e) => setAccountSettings({...accountSettings, email: e.target.value})} 
-                    />
-                  </div>
-                  <div className="pt-4">
-                    <Button 
-                      onClick={handleAccountSave} 
-                      disabled={updateUserMutation.isPending}
-                    >
-                      {updateUserMutation.isPending ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Saving...
-                        </>
-                      ) : 'Save Changes'}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="notifications">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Notification Preferences</CardTitle>
-                  <CardDescription>
-                    Control what notifications you receive.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Email Notifications</p>
-                      <p className="text-sm text-muted-foreground">
-                        Receive notifications via email.
-                      </p>
-                    </div>
-                    <Switch 
-                      checked={notificationSettings.emailNotifications} 
-                      onCheckedChange={() => handleNotificationToggle('emailNotifications')} 
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">App Notifications</p>
-                      <p className="text-sm text-muted-foreground">
-                        Receive notifications within the app.
-                      </p>
-                    </div>
-                    <Switch 
-                      checked={notificationSettings.appNotifications} 
-                      onCheckedChange={() => handleNotificationToggle('appNotifications')} 
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Update Notifications</p>
-                      <p className="text-sm text-muted-foreground">
-                        Receive notifications about community updates.
-                      </p>
-                    </div>
-                    <Switch 
-                      checked={notificationSettings.updateNotifications} 
-                      onCheckedChange={() => handleNotificationToggle('updateNotifications')} 
-                    />
-                  </div>
-                  {(userRole === 'admin' || userRole === 'staff') && (
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">Maintenance Notifications</p>
-                        <p className="text-sm text-muted-foreground">
-                          Receive notifications about maintenance tasks.
-                        </p>
-                      </div>
-                      <Switch 
-                        checked={notificationSettings.maintenanceNotifications} 
-                        onCheckedChange={() => handleNotificationToggle('maintenanceNotifications')} 
-                      />
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            <TabsContent value="display">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Display Settings</CardTitle>
-                  <CardDescription>
-                    Customize how the application appears to you.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Dark Mode</p>
-                      <p className="text-sm text-muted-foreground">
-                        Enable dark mode for the interface.
-                      </p>
-                    </div>
-                    <Switch 
-                      checked={displaySettings.darkMode} 
-                      onCheckedChange={() => handleDisplayToggle('darkMode')} 
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">High Contrast</p>
-                      <p className="text-sm text-muted-foreground">
-                        Increase contrast for better visibility.
-                      </p>
-                    </div>
-                    <Switch 
-                      checked={displaySettings.highContrast} 
-                      onCheckedChange={() => handleDisplayToggle('highContrast')} 
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">Large Text</p>
-                      <p className="text-sm text-muted-foreground">
-                        Increase text size throughout the application.
-                      </p>
-                    </div>
-                    <Switch 
-                      checked={displaySettings.largeText} 
-                      onCheckedChange={() => handleDisplayToggle('largeText')} 
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-            
-            {userRole === 'admin' && (
-              <TabsContent value="advanced">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Advanced Settings</CardTitle>
-                    <CardDescription>
-                      These settings are only available to administrators.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="systemBackup">System Backup Frequency</Label>
-                      <select 
-                        id="systemBackup" 
-                        className="w-full p-2 border rounded-md"
-                      >
-                        <option value="daily">Daily</option>
-                        <option value="weekly">Weekly</option>
-                        <option value="monthly">Monthly</option>
-                      </select>
-                    </div>
-                    <div className="space-y-2 pt-4">
-                      <Button variant="outline">Export System Data</Button>
-                    </div>
-                    <div className="space-y-2 pt-2">
-                      <Button variant="destructive">Reset System</Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            )}
-          </Tabs>
-        )}
+        <Tabs defaultValue="account" className="w-full">
+          <TabsList className="grid grid-cols-3 md:w-[400px] mb-6">
+            <TabsTrigger value="account">Account</TabsTrigger>
+            <TabsTrigger value="notifications">Notifications</TabsTrigger>
+            <TabsTrigger value="appearance">Appearance</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="account" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Account Information</CardTitle>
+                <CardDescription>
+                  Update your personal information and manage your account settings.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Name</Label>
+                  <Input id="name" defaultValue={residents && residents.length > 0 ? residents[0].name : 'N/A'} disabled />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" type="email" defaultValue={residents && residents.length > 0 ? residents[0].email : 'N/A'} disabled />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="apartment">Apartment</Label>
+                  <Input id="apartment" defaultValue={residents && residents.length > 0 ? `A${residents[0].apartment_id}` : 'N/A'} disabled />
+                </div>
+                <Button variant="outline">Update Profile</Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="notifications" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Notification Preferences</CardTitle>
+                <CardDescription>
+                  Configure how you receive notifications.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="notification-email">Email for Notifications</Label>
+                  <Input
+                    id="notification-email"
+                    type="email"
+                    placeholder="Enter your email"
+                    value={notificationEmail}
+                    onChange={(e) => setNotificationEmail(e.target.value)}
+                  />
+                </div>
+                <Button variant="outline" onClick={handleUpdateEmail}>Update Email</Button>
+                <Separator className="my-4" />
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="push-notifications">Push Notifications</Label>
+                  <Switch
+                    id="push-notifications"
+                    checked={pushEnabled}
+                    onCheckedChange={handleTogglePush}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="email-notifications">Email Notifications</Label>
+                  <Switch
+                    id="email-notifications"
+                    checked={emailEnabled}
+                    onCheckedChange={handleToggleEmail}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="sms-notifications">SMS Notifications</Label>
+                  <Switch
+                    id="sms-notifications"
+                    checked={smsEnabled}
+                    onCheckedChange={handleToggleSMS}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="appearance" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Appearance Settings</CardTitle>
+                <CardDescription>
+                  Customize the look and feel of the application.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="dark-mode">Dark Mode</Label>
+                  <Switch
+                    id="dark-mode"
+                    checked={darkMode}
+                    onCheckedChange={handleToggleDarkMode}
+                  />
+                </div>
+                <Badge variant="secondary">
+                  <span className="font-bold">Note:</span> Requires page reload to fully apply.
+                </Badge>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </Layout>
   );

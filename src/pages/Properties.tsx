@@ -1,15 +1,10 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import Layout from '@/components/layout/layout';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Plus, Building, User, Home, Calendar } from 'lucide-react';
+import { Building, Home, Search, Plus } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -19,197 +14,183 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery } from '@tanstack/react-query';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
-// Mock data for apartments
-const mockApartments = [
-  {
-    id: 1,
-    unit: 'A-101',
-    type: '2 BHK',
-    size: '1200 sqft',
-    bedrooms: 2,
-    bathrooms: 2,
-    wing: 'A',
-    owner: 'John Doe',
-    status: 'Occupied',
-  },
-  {
-    id: 2,
-    unit: 'B-202',
-    type: '1 BHK',
-    size: '950 sqft',
-    bedrooms: 1,
-    bathrooms: 1,
-    wing: 'B',
-    owner: 'Jane Smith',
-    status: 'Occupied',
-  },
-  {
-    id: 3,
-    unit: 'C-303',
-    type: '3 BHK',
-    size: '1800 sqft',
-    bedrooms: 3,
-    bathrooms: 2,
-    wing: 'C',
-    owner: 'Robert Johnson',
-    status: 'Occupied',
-  },
-  {
-    id: 4,
-    unit: 'D-404',
-    type: '2 BHK',
-    size: '1100 sqft',
-    bedrooms: 2,
-    bathrooms: 1,
-    wing: 'D',
-    owner: 'Michael Brown',
-    status: 'Vacant',
-  },
-  {
-    id: 5,
-    unit: 'A-105',
-    type: '2 BHK',
-    size: '1300 sqft',
-    bedrooms: 2,
-    bathrooms: 2,
-    wing: 'A',
-    owner: 'Emily Wong',
-    status: 'Occupied',
-  },
-];
+interface PropertiesProps {}
 
-const Properties: React.FC = () => {
-  const { data: apartments, isLoading, error } = useQuery({
-    queryKey: ['apartments'],
+interface Property {
+  id: number;
+  type: string;
+  block: string;
+  floor: number;
+  number: string;
+  status: string;
+  owner?: string;
+}
+
+const getStatusColor = (status: string) => {
+  switch (status.toLowerCase()) {
+    case 'occupied':
+      return 'bg-green-500';
+    case 'available':
+      return 'bg-blue-500';
+    case 'maintenance':
+      return 'bg-yellow-500';
+    case 'reserved':
+      return 'bg-purple-500';
+    default:
+      return 'bg-gray-500';
+  }
+};
+
+const Properties: React.FC<PropertiesProps> = () => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentTab, setCurrentTab] = useState('all');
+  const { toast } = useToast();
+
+  const { data: properties = [], isLoading } = useQuery({
+    queryKey: ['properties'],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase.from('apartments').select('*');
-        
+        const { data, error } = await supabase
+          .from('apartment')
+          .select('*');
+
         if (error) {
-          console.info('Supabase error:', error);
-          console.info('Using mock apartments data');
-          return mockApartments;
+          throw error;
         }
-        
-        return data || mockApartments;
-      } catch (err) {
-        console.error('Error fetching apartments:', err);
-        return mockApartments;
+
+        // Map the data to the Property interface
+        return data.map((item: any) => ({
+          id: item.apartment_id,
+          type: 'Apartment',  // Default to apartment since we don't have a type field
+          block: item.block || '',
+          floor: item.floor_number || 0,
+          number: item.apartment_number || '',
+          status: item.apartment_status || 'Unknown',
+          owner: item.owner_name || 'Not assigned'
+        })) as Property[];
+      } catch (error) {
+        console.error('Error fetching properties:', error);
+        return [];
       }
-    }
+    },
   });
 
-  const oneBhk = apartments?.filter(apt => apt.type === '1 BHK').length || 0;
-  const twoBhk = apartments?.filter(apt => apt.type === '2 BHK').length || 0;
-  const threeBhk = apartments?.filter(apt => apt.type === '3 BHK').length || 0;
+  const filteredProperties = properties.filter((property) => {
+    const matchesSearch =
+      property.block.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      property.number.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (property.owner && property.owner.toLowerCase().includes(searchQuery.toLowerCase()));
+
+    if (currentTab === 'all') return matchesSearch;
+    return matchesSearch && property.type.toLowerCase() === currentTab;
+  });
+
+  const handleAddProperty = () => {
+    toast({
+      title: "Feature Coming Soon",
+      description: "Property management features will be available in the next update.",
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-full">
+          <p>Loading properties data...</p>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
-      <div className="space-y-6 animate-fade-in">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight">Apartments</h2>
-            <p className="text-muted-foreground">
-              Manage apartment units in Nirvaan Heights
-            </p>
-          </div>
-          <Button>
-            <Plus className="mr-2 h-4 w-4" /> Add Apartment
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-3xl font-bold tracking-tight">Properties</h1>
+          <Button onClick={handleAddProperty}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Property
           </Button>
         </div>
 
-        {/* Apartment Types Card */}
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">1 BHK</CardTitle>
-              <CardDescription>One bedroom units</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center">
-                <Home className="h-8 w-8 text-primary mr-2" />
-                <span className="text-2xl font-bold">{oneBhk}</span>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="flex flex-col md:flex-row gap-4 md:items-center justify-between">
+          <div className="relative w-full md:w-96">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by block, number, or owner..."
+              className="pl-8"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
           
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">2 BHK</CardTitle>
-              <CardDescription>Two bedroom units</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center">
-                <Building className="h-8 w-8 text-primary mr-2" />
-                <span className="text-2xl font-bold">{twoBhk}</span>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">3 BHK</CardTitle>
-              <CardDescription>Three bedroom units</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center">
-                <User className="h-8 w-8 text-primary mr-2" />
-                <span className="text-2xl font-bold">{threeBhk}</span>
-              </div>
-            </CardContent>
-          </Card>
+          <Tabs
+            defaultValue="all"
+            value={currentTab}
+            onValueChange={setCurrentTab}
+            className="w-full md:w-auto"
+          >
+            <TabsList className="grid grid-cols-2 md:grid-cols-4 w-full md:w-[400px]">
+              <TabsTrigger value="all">All</TabsTrigger>
+              <TabsTrigger value="apartment">
+                <Home className="h-4 w-4 mr-2" />
+                Apartments
+              </TabsTrigger>
+              <TabsTrigger value="commercial">
+                <Building className="h-4 w-4 mr-2" />
+                Commercial
+              </TabsTrigger>
+              <TabsTrigger value="parking">Parking</TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
 
-        {/* Apartment Listing */}
         <Card>
           <CardHeader>
-            <CardTitle>Apartment Directory</CardTitle>
-            <CardDescription>All apartment units in Nirvaan Heights</CardDescription>
+            <CardTitle>Property Inventory</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="rounded-md border">
-              {isLoading ? (
-                <div className="p-8 text-center">Loading apartment data...</div>
-              ) : error ? (
-                <div className="p-8 text-center text-red-500">Error loading apartment data</div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Unit</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Wing</TableHead>
-                      <TableHead>Size</TableHead>
-                      <TableHead className="hidden md:table-cell">Bedrooms</TableHead>
-                      <TableHead className="hidden md:table-cell">Bathrooms</TableHead>
-                      <TableHead>Owner</TableHead>
-                      <TableHead>Status</TableHead>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Block</TableHead>
+                  <TableHead>Number</TableHead>
+                  <TableHead>Floor</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Owner</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredProperties.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center">
+                      No properties found
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredProperties.map((property) => (
+                    <TableRow key={property.id}>
+                      <TableCell>{property.block}</TableCell>
+                      <TableCell>{property.number}</TableCell>
+                      <TableCell>{property.floor}</TableCell>
+                      <TableCell>{property.type}</TableCell>
+                      <TableCell>
+                        <Badge className={getStatusColor(property.status)}>
+                          {property.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{property.owner || 'Not assigned'}</TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {apartments?.map((apartment) => (
-                      <TableRow key={apartment.id}>
-                        <TableCell className="font-medium">{apartment.unit}</TableCell>
-                        <TableCell>{apartment.type}</TableCell>
-                        <TableCell>{apartment.wing}</TableCell>
-                        <TableCell>{apartment.size}</TableCell>
-                        <TableCell className="hidden md:table-cell">{apartment.bedrooms}</TableCell>
-                        <TableCell className="hidden md:table-cell">{apartment.bathrooms}</TableCell>
-                        <TableCell>{apartment.owner}</TableCell>
-                        <TableCell>
-                          <Badge variant={apartment.status === 'Occupied' ? 'default' : 'outline'}>
-                            {apartment.status}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </div>
+                  ))
+                )}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       </div>
