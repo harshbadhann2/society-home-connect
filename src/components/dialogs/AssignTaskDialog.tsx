@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Staff } from '@/types/database';
+import { Textarea } from '@/components/ui/textarea';
 import { 
   Select,
   SelectContent,
@@ -12,48 +12,33 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from '@/components/ui/textarea';
+import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/components/ui/use-toast';
-import { format, addDays } from 'date-fns';
+import { QueryObserverResult, RefetchOptions } from '@tanstack/react-query';
+import { CalendarIcon } from 'lucide-react';
+import { format } from 'date-fns';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 
 interface AssignTaskDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  staffMember: Staff | null;
+  staffId?: number | null;
+  onTaskAssigned?: (options?: RefetchOptions) => Promise<QueryObserverResult<any, Error>>;
 }
 
-const AssignTaskDialog = ({ open, onOpenChange, staffMember }: AssignTaskDialogProps) => {
+const AssignTaskDialog = ({ open, onOpenChange, staffId, onTaskAssigned }: AssignTaskDialogProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  const getCurrentDate = () => format(new Date(), 'yyyy-MM-dd');
-  const getNextDate = (frequency: string) => {
-    const daysToAdd = 
-      frequency === 'Daily' ? 1 :
-      frequency === 'Weekly' ? 7 :
-      frequency === 'Bi-weekly' ? 14 :
-      frequency === 'Monthly' ? 30 : 1;
-    
-    return format(addDays(new Date(), daysToAdd), 'yyyy-MM-dd');
-  };
+  const { toast } = useToast();
+  const [date, setDate] = useState<Date | undefined>(new Date());
   
   const [formData, setFormData] = useState({
-    area: '',
-    service_type: '',
-    staff_id: staffMember?.id || 0, // Changed from staff_id to id
-    resident_id: null,
-    cleaning_status: 'Scheduled',
-    cleaning_date: getCurrentDate(),
-  });
-
-  // Update form if staffMember changes
-  useState(() => {
-    if (staffMember) {
-      setFormData(prev => ({
-        ...prev,
-        staff_id: staffMember.id, // Changed from staff_id to id
-      }));
-    }
+    title: '',
+    description: '',
+    priority: 'Medium',
+    due_date: format(new Date(), 'yyyy-MM-dd'),
+    status: 'Assigned'
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -65,58 +50,62 @@ const AssignTaskDialog = ({ open, onOpenChange, staffMember }: AssignTaskDialogP
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handleDateChange = (selectedDate: Date | undefined) => {
+    if (selectedDate) {
+      setDate(selectedDate);
+      setFormData(prev => ({ 
+        ...prev, 
+        due_date: format(selectedDate, 'yyyy-MM-dd')
+      }));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!staffMember) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "No staff member selected.",
-      });
-      return;
-    }
-    
     setIsSubmitting(true);
     
     try {
-      // Try to add task to Supabase
-      const { data, error } = await supabase
-        .from('housekeeping')
-        .insert({
-          staff_id: staffMember.id, // Changed from staff_id to id
-          area: formData.area,
-          service_type: formData.service_type,
-          cleaning_status: formData.cleaning_status,
-          cleaning_date: formData.cleaning_date,
-        });
-
-      if (error) {
-        if (error.message.includes("does not exist")) {
-          // Show success toast even with mock data
-          toast({
-            title: "Task Assigned",
-            description: `Task has been assigned to ${staffMember.name} successfully.`,
-          });
-          onOpenChange(false);
-          return;
-        }
-        throw error;
+      if (!staffId) {
+        throw new Error("No staff member selected");
       }
+      
+      // Mock API call since we don't have a tasks table yet
+      console.log(`Assigning task to staff #${staffId}:`, formData);
+      
+      // In a real app, you'd insert into a tasks table
+      // const { error } = await supabase.from('tasks').insert({
+      //   staff_id: staffId,
+      //   ...formData,
+      //   created_at: new Date().toISOString()
+      // });
+      
+      // if (error) throw error;
 
       toast({
         title: "Task Assigned",
-        description: `Task has been assigned to ${staffMember.name} successfully.`,
+        description: `The task has been assigned successfully.`,
       });
       
-      // Close dialog
+      // Reset form and close dialog
+      setFormData({
+        title: '',
+        description: '',
+        priority: 'Medium',
+        due_date: format(new Date(), 'yyyy-MM-dd'),
+        status: 'Assigned'
+      });
+      
       onOpenChange(false);
-    } catch (err) {
-      console.error("Error assigning task:", err);
+      
+      if (onTaskAssigned) {
+        await onTaskAssigned();
+      }
+    } catch (error) {
+      console.error("Error assigning task:", error);
       toast({
         variant: "destructive",
-        title: "Failed to assign task",
-        description: "There was an error assigning the task. Please try again.",
+        title: "Error",
+        description: "Failed to assign task. Please try again.",
       });
     } finally {
       setIsSubmitting(false);
@@ -127,64 +116,82 @@ const AssignTaskDialog = ({ open, onOpenChange, staffMember }: AssignTaskDialogP
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Assign Task to {staffMember?.name || 'Staff'}</DialogTitle>
+          <DialogTitle>Assign New Task</DialogTitle>
           <DialogDescription>
-            Enter task details below to assign to {staffMember?.name}.
+            Create a new task for staff member #{staffId}
           </DialogDescription>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
-          <div className="grid gap-4">
+          <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="area">Area</Label>
+              <Label htmlFor="title">Task Title</Label>
               <Input 
-                id="area" 
-                name="area" 
-                placeholder="Main Lobby" 
-                value={formData.area} 
+                id="title" 
+                name="title" 
+                placeholder="Clean the lobby" 
+                value={formData.title} 
                 onChange={handleChange} 
                 required 
               />
             </div>
+            
             <div className="space-y-2">
-              <Label htmlFor="service_type">Service Type</Label>
-              <Textarea 
-                id="service_type" 
-                name="service_type" 
-                placeholder="Detailed description of the task" 
-                value={formData.service_type} 
-                onChange={handleChange} 
-                required 
-                className="min-h-[80px]"
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                name="description"
+                placeholder="Please provide details about the task"
+                value={formData.description}
+                onChange={handleChange}
+                required
               />
             </div>
+            
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="cleaning_status">Status</Label>
+                <Label htmlFor="priority">Priority</Label>
                 <Select 
-                  value={formData.cleaning_status} 
-                  onValueChange={(value) => handleSelectChange('cleaning_status', value)}
+                  value={formData.priority} 
+                  onValueChange={(value) => handleSelectChange('priority', value)}
                 >
-                  <SelectTrigger id="cleaning_status">
-                    <SelectValue placeholder="Select status" />
+                  <SelectTrigger id="priority">
+                    <SelectValue placeholder="Select priority" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Scheduled">Scheduled</SelectItem>
-                    <SelectItem value="In Progress">In Progress</SelectItem>
-                    <SelectItem value="Completed">Completed</SelectItem>
+                    <SelectItem value="Low">Low</SelectItem>
+                    <SelectItem value="Medium">Medium</SelectItem>
+                    <SelectItem value="High">High</SelectItem>
+                    <SelectItem value="Urgent">Urgent</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+              
               <div className="space-y-2">
-                <Label htmlFor="cleaning_date">Cleaning Date</Label>
-                <Input 
-                  id="cleaning_date" 
-                  name="cleaning_date" 
-                  type="date" 
-                  value={formData.cleaning_date} 
-                  onChange={handleChange} 
-                  required 
-                />
+                <Label htmlFor="due_date">Due Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      id="due_date"
+                      variant={"outline"}
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !date && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {date ? format(date, "PPP") : "Select a date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={date}
+                      onSelect={handleDateChange}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
           </div>
@@ -198,7 +205,7 @@ const AssignTaskDialog = ({ open, onOpenChange, staffMember }: AssignTaskDialogP
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting || !staffId}>
               {isSubmitting ? 'Assigning...' : 'Assign Task'}
             </Button>
           </DialogFooter>

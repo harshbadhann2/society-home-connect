@@ -17,10 +17,11 @@ import { toast } from "@/components/ui/use-toast";
 interface AddResidentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAdd: (resident: Omit<Resident, 'id' | 'created_at'>) => Promise<boolean>;
+  onAdd?: (resident: Omit<Resident, 'id' | 'created_at'>) => Promise<boolean>;
+  onDialogClose?: () => void;
 }
 
-const AddResidentDialog = ({ open, onOpenChange, onAdd }: AddResidentDialogProps) => {
+const AddResidentDialog = ({ open, onOpenChange, onAdd, onDialogClose }: AddResidentDialogProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -55,7 +56,11 @@ const AddResidentDialog = ({ open, onOpenChange, onAdd }: AddResidentDialogProps
     
     try {
       console.log("Submitting resident data:", formData);
-      const success = await onAdd(formData);
+      let success = true;
+      if (onAdd) {
+        success = await onAdd(formData);
+      }
+      
       if (success) {
         // Reset form and close dialog
         setFormData({
@@ -66,6 +71,9 @@ const AddResidentDialog = ({ open, onOpenChange, onAdd }: AddResidentDialogProps
           email: '',
         });
         onOpenChange(false);
+        if (onDialogClose) {
+          onDialogClose();
+        }
       }
     } catch (error) {
       console.error("Error submitting form:", error);

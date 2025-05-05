@@ -14,14 +14,16 @@ import {
 } from "@/components/ui/select";
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { QueryObserverResult, RefetchOptions } from '@tanstack/react-query';
 
 interface AddStaffDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAdd: (staff: Omit<Staff, 'id' | 'created_at'>) => Promise<boolean>;
+  onAdd?: (staff: Omit<Staff, 'id' | 'created_at'>) => Promise<boolean>;
+  onStaffAdded?: (options?: RefetchOptions) => Promise<QueryObserverResult<any, Error>>;
 }
 
-const AddStaffDialog = ({ open, onOpenChange, onAdd }: AddStaffDialogProps) => {
+const AddStaffDialog = ({ open, onOpenChange, onAdd, onStaffAdded }: AddStaffDialogProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const [formData, setFormData] = useState({
@@ -87,8 +89,13 @@ const AddStaffDialog = ({ open, onOpenChange, onAdd }: AddStaffDialogProps) => {
         status: 'Active',
       });
       onOpenChange(false);
+      
       if (onAdd) {
         await onAdd(formData);
+      }
+      
+      if (onStaffAdded) {
+        await onStaffAdded();
       }
     } catch (error) {
       console.error("Error submitting form:", error);
