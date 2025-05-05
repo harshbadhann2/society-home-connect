@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import Layout from '@/components/layout/layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,29 +9,44 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User, Mail, Phone, Home, Key, BadgeIndianRupee, CalendarDays, UserRound, BellRing, FileText, Settings, Shield, CreditCard, Lock } from 'lucide-react';
-import { useContext } from 'react';
 import AuthContext from '@/context/AuthContext';
 import { mockResidents } from '@/types/database';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
+import { Link } from 'react-router-dom';
+import { Calendar, MessageSquare, Bed } from 'lucide-react';
 
 const Profile: React.FC = () => {
-  const { isAuthenticated, userRole } = useContext(AuthContext);
+  const { userRole, currentUser } = useContext(AuthContext);
   const { toast } = useToast();
   
-  // In a real application, you would fetch this from the user's profile
-  const [profile, setProfile] = useState(mockResidents[0]);
+  // Start with either the current user or a default
+  const [profile, setProfile] = useState(currentUser || mockResidents[0]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('personal');
   const [formData, setFormData] = useState({
-    name: profile.name,
-    email: profile.email,
-    contact: profile.contact,
+    name: currentUser?.name || mockResidents[0].name,
+    email: currentUser?.email || mockResidents[0].email,
+    contact: currentUser?.contact || mockResidents[0].contact,
     bio: 'Resident at Nirvaan Heights since 2022. I enjoy participating in community events and using the society amenities.',
-    address: 'Flat ' + profile.apartment + ', Nirvaan Heights, Mumbai, Maharashtra - 400076'
+    address: `Flat ${currentUser?.apartment || mockResidents[0].apartment}, Nirvaan Heights, Mumbai, Maharashtra - 400076`
   });
+  
+  // Update form data whenever current user changes
+  useEffect(() => {
+    if (currentUser) {
+      setProfile(currentUser);
+      setFormData(prev => ({
+        ...prev,
+        name: currentUser.name || prev.name,
+        email: currentUser.email || prev.email,
+        contact: currentUser.contact || prev.contact,
+        address: `Flat ${currentUser.apartment || 'A101'}, Nirvaan Heights, Mumbai, Maharashtra - 400076`
+      }));
+    }
+  }, [currentUser]);
   
   // Activity data for the activity tab
   const [activityData, setActivityData] = useState([
@@ -116,7 +130,7 @@ const Profile: React.FC = () => {
               <CardContent className="p-6 flex flex-col items-center">
                 <Avatar className="h-32 w-32 border-4 border-primary/20">
                   <AvatarImage src="/placeholder.svg" />
-                  <AvatarFallback className="bg-primary/10 text-primary text-4xl">{profile.name.charAt(0)}</AvatarFallback>
+                  <AvatarFallback className="bg-primary/10 text-primary text-4xl">{profile.name?.charAt(0) || '?'}</AvatarFallback>
                 </Avatar>
                 
                 <div className="mt-6 space-y-1 text-center">
@@ -455,9 +469,5 @@ const Profile: React.FC = () => {
     </Layout>
   );
 };
-
-// Make sure to add missing imports
-import { Link } from 'react-router-dom';
-import { Calendar, MessageSquare, Bed } from 'lucide-react';
 
 export default Profile;

@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { mockUsers } from '@/types/database';
+import { mockUsers, mockResidents, mockStaff } from '@/types/database';
 import AuthContext from '@/context/AuthContext';
 
 const Login: React.FC = () => {
@@ -23,7 +23,7 @@ const Login: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { setIsAuthenticated, setUserRole } = useContext(AuthContext);
+  const { setIsAuthenticated, setUserRole, setCurrentUser } = useContext(AuthContext);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,7 +31,7 @@ const Login: React.FC = () => {
 
     try {
       // First, try to authenticate with Supabase
-      const { data, error } = await supabase
+      const { data: userData, error: userError } = await supabase
         .from('users')
         .select('*')
         .eq('email', email)
@@ -39,8 +39,8 @@ const Login: React.FC = () => {
         .in('role', ['resident', 'staff'])
         .single();
 
-      if (error) {
-        console.info('Supabase login error:', error);
+      if (userError) {
+        console.info('Supabase login error:', userError);
         console.info('Falling back to mock users');
 
         // Fall back to mock data
@@ -56,23 +56,87 @@ const Login: React.FC = () => {
           return;
         }
         
-        // Use mock user
+        // Find detailed user information based on role
+        let userDetails = null;
+        if (user.role === 'resident') {
+          const { data: residentData, error: residentError } = await supabase
+            .from('residents')
+            .select('*')
+            .eq('email', email)
+            .single();
+            
+          if (residentError || !residentData) {
+            // Fall back to mock data
+            userDetails = mockResidents.find(resident => resident.email === email);
+          } else {
+            userDetails = residentData;
+          }
+        } else if (user.role === 'staff') {
+          const { data: staffData, error: staffError } = await supabase
+            .from('staff')
+            .select('*')
+            .eq('email', email)
+            .single();
+            
+          if (staffError || !staffData) {
+            // Fall back to mock data
+            userDetails = mockStaff.find(staff => staff.email === email);
+          } else {
+            userDetails = staffData;
+          }
+        }
+        
+        // Use mock user with details
         setIsAuthenticated(true);
         setUserRole(user.role as 'resident' | 'staff');
+        setCurrentUser(userDetails || { name: email.split('@')[0], email });
+        
         toast({
           title: "Login Successful",
-          description: `Welcome back, ${user.role}!`,
+          description: `Welcome back, ${userDetails?.name || email.split('@')[0]}!`,
         });
         navigate('/');
         return;
       }
 
       // Supabase authentication successful
+      // Get more user details based on role
+      let userDetails = null;
+      if (userData.role === 'resident') {
+        const { data: residentData, error: residentError } = await supabase
+          .from('residents')
+          .select('*')
+          .eq('email', email)
+          .single();
+          
+        if (residentError || !residentData) {
+          // Fall back to mock data
+          userDetails = mockResidents.find(resident => resident.email === email);
+        } else {
+          userDetails = residentData;
+        }
+      } else if (userData.role === 'staff') {
+        const { data: staffData, error: staffError } = await supabase
+          .from('staff')
+          .select('*')
+          .eq('email', email)
+          .single();
+          
+        if (staffError || !staffData) {
+          // Fall back to mock data
+          userDetails = mockStaff.find(staff => staff.email === email);
+        } else {
+          userDetails = staffData;
+        }
+      }
+
       setIsAuthenticated(true);
-      setUserRole(data.role as 'resident' | 'staff');
+      setUserRole(userData.role as 'resident' | 'staff');
+      setCurrentUser(userDetails || { name: email.split('@')[0], email });
+      
       toast({
         title: "Login Successful",
-        description: `Welcome back, ${data.role}!`,
+        description: `Welcome back, ${userDetails?.name || email.split('@')[0]}!`,
       });
       navigate('/');
 

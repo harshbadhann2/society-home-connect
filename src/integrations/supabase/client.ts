@@ -8,7 +8,7 @@ const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
 // Import mock data
-import { mockParking } from '@/types/database';
+import { mockParking, mockResidents, mockStaff } from '@/types/database';
 
 // Initialize database tables - simpler approach without using stored procedures
 export const initializeDatabase = async () => {
@@ -23,8 +23,31 @@ export const initializeDatabase = async () => {
       
     console.log('Parking check result:', existingParking, parkingError);
     
-    // If there's an error, the table likely doesn't exist or has wrong schema
-    // Let's use mock data as a fallback instead of trying to create tables
+    // Check if 'residents' table exists
+    const { data: existingResidents, error: residentsError } = await supabase
+      .from('residents')
+      .select('count')
+      .limit(1);
+      
+    console.log('Residents check result:', existingResidents, residentsError);
+    
+    // Check if 'staff' table exists
+    const { data: existingStaff, error: staffError } = await supabase
+      .from('staff')
+      .select('count')
+      .limit(1);
+      
+    console.log('Staff check result:', existingStaff, staffError);
+    
+    // Check if 'users' table exists for authentication
+    const { data: existingUsers, error: usersError } = await supabase
+      .from('users')
+      .select('count')
+      .limit(1);
+      
+    console.log('Users check result:', existingUsers, usersError);
+    
+    // If there's an error with the parking table, use mock data
     if (parkingError) {
       console.log('Using mock data for parking since table appears to be missing or inaccessible');
     } else if (existingParking && existingParking.length === 0) {
@@ -45,6 +68,56 @@ export const initializeDatabase = async () => {
         if (error) console.error('Error inserting mock parking data:', error);
       }
     }
+    
+    // If there's an error with the residents table, use mock data
+    if (residentsError) {
+      console.log('Using mock data for residents since table appears to be missing or inaccessible');
+    } else if (existingResidents && existingResidents.length === 0) {
+      // Table exists but is empty - let's populate it
+      console.log('Populating empty residents table with mock data');
+      
+      for (const resident of mockResidents) {
+        const { error } = await supabase
+          .from('residents')
+          .insert({
+            name: resident.name,
+            email: resident.email,
+            contact: resident.contact,
+            apartment: resident.apartment,
+            status: resident.status
+          });
+          
+        if (error) console.error('Error inserting mock resident data:', error);
+      }
+    }
+    
+    // If there's an error with the staff table, use mock data
+    if (staffError) {
+      console.log('Using mock data for staff since table appears to be missing or inaccessible');
+    } else if (existingStaff && existingStaff.length === 0) {
+      // Table exists but is empty - let's populate it
+      console.log('Populating empty staff table with mock data');
+      
+      for (const staff of mockStaff) {
+        const { error } = await supabase
+          .from('staff')
+          .insert({
+            name: staff.name,
+            email: staff.email,
+            contact: staff.contact,
+            role: staff.role,
+            status: staff.status
+          });
+          
+        if (error) console.error('Error inserting mock staff data:', error);
+      }
+    }
+    
+    // If there's an error with the users table, use mock data
+    if (usersError) {
+      console.log('Using mock data for users since table appears to be missing or inaccessible');
+    }
+    
   } catch (error) {
     console.error('Database initialization error:', error);
   }

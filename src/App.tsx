@@ -23,7 +23,7 @@ import Login from "./pages/Login";
 import AdminLogin from "./pages/AdminLogin";
 import LoginPage from "./pages/LoginPage"; // Combined login page
 import { useState } from "react";
-import AuthContext from "./context/AuthContext";
+import AuthContext, { UserInfo } from "./context/AuthContext";
 import { ThemeProvider } from "./components/providers/theme-provider";
 
 const queryClient = new QueryClient({
@@ -38,11 +38,19 @@ const queryClient = new QueryClient({
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userRole, setUserRole] = useState<'admin' | 'staff' | 'resident' | null>(null);
+  const [currentUser, setCurrentUser] = useState<UserInfo | null>(null);
   
   return (
     <ThemeProvider defaultTheme="light">
       <QueryClientProvider client={queryClient}>
-        <AuthContext.Provider value={{ isAuthenticated, setIsAuthenticated, userRole, setUserRole }}>
+        <AuthContext.Provider value={{ 
+          isAuthenticated, 
+          setIsAuthenticated, 
+          userRole, 
+          setUserRole,
+          currentUser,
+          setCurrentUser
+        }}>
           <TooltipProvider>
             <Toaster />
             <Sonner />

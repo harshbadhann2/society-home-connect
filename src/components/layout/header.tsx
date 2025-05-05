@@ -1,7 +1,7 @@
 
 import React, { useState, useContext, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Bell, Menu, User, Moon, Sun } from 'lucide-react';
+import { Bell, Menu } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -15,110 +15,42 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import AuthContext from '@/context/AuthContext';
-import { mockResidents, mockStaff, mockUsers } from '@/types/database';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-
-interface User {
-  id?: string | number;
-  name?: string;
-  email?: string;
-  role?: string;
-  [key: string]: any; // Allow for any other properties
-}
 
 const Header: React.FC = () => {
   const isMobile = useIsMobile();
   const { toggleSidebar } = useSidebarContext();
-  const { userRole, setIsAuthenticated, setUserRole } = useContext(AuthContext);
+  const { userRole, setIsAuthenticated, setUserRole, currentUser, setCurrentUser } = useContext(AuthContext);
   const [notifications, setNotifications] = useState([
     { id: 1, message: "New notice posted", time: "2 min ago" },
     { id: 2, message: "Payment reminder", time: "1 hour ago" },
     { id: 3, message: "Maintenance scheduled", time: "Yesterday" }
   ]);
-
-  // Default user with proper typing
-  const [currentUser, setCurrentUser] = useState<User>(mockResidents[0]);
+  
   const [timeOfDay, setTimeOfDay] = useState<string>("");
   
-  // Fetch user data based on role
-  const { data: userData } = useQuery({
-    queryKey: ['current-user', userRole],
-    queryFn: async () => {
-      if (!userRole) return null;
-      
-      try {
-        // For admin, we use a simple lookup from mock data
-        if (userRole === 'admin') {
-          return mockUsers.find(user => user.role === 'admin');
-        }
-        
-        // For staff, try to fetch from database first
-        if (userRole === 'staff') {
-          const { data, error } = await supabase
-            .from('staff')
-            .select('*')
-            .limit(1);
-            
-          if (data && data.length > 0) {
-            return data[0];
-          } else {
-            return mockStaff[0]; // Fallback to mock data
-          }
-        }
-        
-        // For residents, try to fetch from database first
-        if (userRole === 'resident') {
-          const { data, error } = await supabase
-            .from('residents')
-            .select('*')
-            .limit(1);
-            
-          if (data && data.length > 0) {
-            return data[0];
-          } else {
-            return mockResidents[0]; // Fallback to mock data
-          }
-        }
-        
-        return null;
-      } catch (err) {
-        console.error('Error fetching user data:', err);
-        // Fallback to mock data based on role
-        if (userRole === 'admin') return mockUsers.find(user => user.role === 'admin');
-        if (userRole === 'staff') return mockStaff[0];
-        return mockResidents[0];
-      }
-    }
-  });
-  
   useEffect(() => {
-    // Update current user when userData changes
-    if (userData) {
-      setCurrentUser(userData as User);
-    }
-    
     // Get time of day for greeting
     const hour = new Date().getHours();
     if (hour < 12) setTimeOfDay("Good Morning");
     else if (hour < 17) setTimeOfDay("Good Afternoon");
     else setTimeOfDay("Good Evening");
-  }, [userData]);
+  }, []);
   
   const handleLogout = () => {
     setIsAuthenticated(false);
     setUserRole(null);
+    setCurrentUser(null);
   };
   
-  // Helper function to get user's name regardless of user type
+  // Helper function to get user's name
   const getUserName = () => {
     if (!currentUser) return "Guest";
     
-    if ('name' in currentUser && currentUser.name) {
+    if (currentUser.name) {
       return currentUser.name;
-    } else if ('email' in currentUser && currentUser.email) {
-      // If we only have email (like for admin), use the part before @
+    } else if (currentUser.email) {
+      // If we only have email, use the part before @
       return currentUser.email.split('@')[0];
     }
     
