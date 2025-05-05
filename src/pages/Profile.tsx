@@ -17,7 +17,7 @@ interface ResidentData {
   name: string;
   email: string;
   contact_number: string;
-  apartment_id?: string;  // Changed to string to match AuthContext type
+  apartment_id?: string;  // Using string type to match AuthContext
   status: string;
   resident_id: number;
   joining_date: string;
