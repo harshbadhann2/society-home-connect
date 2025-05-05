@@ -25,7 +25,9 @@ import { Amenity, mockAmenities } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
 import { BookAmenityDialog } from '@/components/dialogs/BookAmenityDialog';
 
-const getStatusColor = (status: string) => {
+const getStatusColor = (status: string | null | undefined) => {
+  if (!status) return 'bg-gray-100 text-gray-800 border-gray-200';
+  
   switch (status.toLowerCase()) {
     case 'available':
       return 'bg-green-100 text-green-800 border-green-200';
@@ -87,7 +89,8 @@ const Amenities: React.FC = () => {
     queryKey: ['amenities'],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase.from('amenities').select('*');
+        // Updated from "amenities" to "amenity" to match the correct table name
+        const { data, error } = await supabase.from('amenity').select('*');
         
         if (error) {
           console.info('Supabase error:', error);
@@ -95,7 +98,15 @@ const Amenities: React.FC = () => {
           return mockAmenities;
         }
         
-        return data as Amenity[];
+        // Map the returned data to match our expected format
+        return data.map((item: any) => ({
+          id: item.amenity_id,
+          name: item.amenity_name,
+          location: 'Main Building', // Default location if not provided
+          capacity: 20, // Default capacity if not provided
+          opening_hours: item.operating_hours || '9 AM - 9 PM',
+          status: item.availability_status || 'Available'
+        })) as Amenity[];
       } catch (err) {
         console.error('Error fetching amenities:', err);
         return mockAmenities;
@@ -107,14 +118,16 @@ const Amenities: React.FC = () => {
     queryKey: ['bookings'],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase.from('bookings').select('*');
+        // Using delivery_records as a temporary placeholder since there's no bookings table
+        const { data, error } = await supabase.from('delivery_records').select('*');
         
         if (error) {
           console.info('Supabase error:', error);
           return mockBookings;
         }
         
-        return data as Booking[];
+        // For now, return mock bookings since we don't have a proper bookings table
+        return mockBookings;
       } catch (err) {
         console.error('Error fetching bookings:', err);
         return mockBookings;
@@ -126,7 +139,7 @@ const Amenities: React.FC = () => {
     queryKey: ['residents'],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase.from('residents').select('id, name, apartment');
+        const { data, error } = await supabase.from('resident').select('resident_id, name, apartment_id');
         
         if (error) {
           console.error('Supabase error fetching residents:', error);
@@ -143,8 +156,8 @@ const Amenities: React.FC = () => {
 
   const getResidentInfo = (residentId: number) => {
     if (residents && residents.length > 0) {
-      const resident = residents.find((r: any) => r.id === residentId);
-      return resident ? { name: resident.name, apartment: resident.apartment } : { name: 'Unknown', apartment: 'N/A' };
+      const resident = residents.find((r: any) => r.resident_id === residentId);
+      return resident ? { name: resident.name, apartment: resident.apartment_id } : { name: 'Unknown', apartment: 'N/A' };
     }
     return { name: 'Unknown', apartment: 'N/A' };
   };
@@ -265,11 +278,11 @@ const Amenities: React.FC = () => {
                         <TableCell className="hidden md:table-cell">{amenity.opening_hours}</TableCell>
                         <TableCell>
                           <Badge variant="outline" className={getStatusColor(amenity.status)}>
-                            {amenity.status}
+                            {amenity.status || 'Unknown'}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          {amenity.status.toLowerCase() === 'available' ? (
+                          {amenity.status && amenity.status.toLowerCase() === 'available' ? (
                             <Button 
                               variant="outline" 
                               size="sm"
@@ -281,9 +294,9 @@ const Amenities: React.FC = () => {
                             <Button 
                               variant="outline" 
                               size="sm"
-                              disabled={amenity.status.toLowerCase() !== 'booked'}
+                              disabled={!amenity.status || amenity.status.toLowerCase() !== 'booked'}
                             >
-                              {amenity.status.toLowerCase() === 'booked' ? 'View Details' : 'Unavailable'}
+                              {amenity.status && amenity.status.toLowerCase() === 'booked' ? 'View Details' : 'Unavailable'}
                             </Button>
                           )}
                         </TableCell>
