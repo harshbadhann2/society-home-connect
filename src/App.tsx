@@ -192,7 +192,8 @@ const App = () => {
                 resident_id: residentData.resident_id,
                 name: residentData.name,
                 contact: residentData.contact_number,
-                apartment: residentData.apartment_id?.toString(),
+                // Fix: Convert apartment_id to string to avoid type error
+                apartment: residentData.apartment_id ? String(residentData.apartment_id) : undefined,
                 status: residentData.status,
               };
             });
