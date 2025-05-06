@@ -59,7 +59,7 @@ const ProtectedRoute = ({ element, allowedRoles }: ProtectedRouteProps) => {
     };
     
     checkAuth();
-  }, [location.pathname]); // Only recheck when path changes, not on every render
+  }, [location.pathname, isAuthenticated]); // Only recheck when path changes or auth status is null
   
   if (isAuthenticated === null) {
     // Still checking auth status
@@ -91,124 +91,150 @@ const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userRole, setUserRole] = useState<'admin' | 'staff' | 'resident' | null>(null);
   const [currentUser, setCurrentUser] = useState<UserInfo | null>(null);
-  const [authChecked, setAuthChecked] = useState(false); // New state to track initial auth check
+  const [authChecked, setAuthChecked] = useState(false);
+  const [initializing, setInitializing] = useState(true);
   
-  // Set up auth state listener
+  // Check session only once at the beginning
   useEffect(() => {
-    // Prevent multiple subscription attempts
-    if (authChecked) return;
-    
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setIsAuthenticated(!!session);
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
         
         if (session) {
-          // Get user role from metadata or fetch from profile table
+          setIsAuthenticated(true);
+          
+          // Set initial user data
           const userMeta = session.user.user_metadata;
-          const role = userMeta.role || 'resident'; // Default to resident if no role found
+          const role = userMeta?.role || 'resident';
           setUserRole(role as 'admin' | 'staff' | 'resident');
           
-          // Update current user info
           setCurrentUser({
             userId: session.user.id,
             email: session.user.email,
-            name: userMeta.full_name || userMeta.name,
+            name: userMeta?.full_name || userMeta?.name,
             role: role
           });
-          
-          // Optionally fetch more user details from your database
-          if (role === 'resident') {
-            try {
-              const { data: residentData } = await supabase
-                .from('resident')
-                .select('*')
-                .eq('email', session.user.email)
-                .single();
-                
-              if (residentData) {
-                setCurrentUser(prevState => {
-                  if (!prevState) return null;
-                  return {
-                    ...prevState,
-                    resident_id: residentData.resident_id,
-                    name: residentData.name,
-                    contact: residentData.contact_number,
-                    apartment: residentData.apartment_id?.toString(), // Convert to string explicitly
-                    status: residentData.status,
-                  };
-                });
-              }
-            } catch (error) {
-              console.error('Error fetching resident data:', error);
-            }
-          } else if (role === 'staff' || role === 'admin') {
-            try {
-              const { data: staffData } = await supabase
-                .from('staff')
-                .select('*')
-                .eq('name', userMeta.full_name || userMeta.name)
-                .single();
-                
-              if (staffData) {
-                setCurrentUser(prevState => {
-                  if (!prevState) return null;
-                  return {
-                    ...prevState,
-                    id: staffData.staff_id,
-                    name: staffData.name,
-                    contact: staffData.contact_number,
-                  };
-                });
-              }
-            } catch (error) {
-              console.error('Error fetching staff data:', error);
-            }
-          }
         } else {
+          setIsAuthenticated(false);
           setUserRole(null);
           setCurrentUser(null);
         }
-        
-        // Mark auth check as complete
+      } catch (error) {
+        console.error("Session check error:", error);
+      } finally {
         setAuthChecked(true);
+        setInitializing(false);
       }
-    );
-    
-    // Initial session check - only do this once
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setIsAuthenticated(!!session);
-      
-      if (session) {
-        // Set initial user data
-        const userMeta = session.user.user_metadata;
-        const role = userMeta.role || 'resident';
-        setUserRole(role as 'admin' | 'staff' | 'resident');
-        
-        setCurrentUser({
-          userId: session.user.id,
-          email: session.user.email,
-          name: userMeta.full_name || userMeta.name,
-          role: role
-        });
-      }
-      
-      // Mark auth check as complete after initial check
-      setAuthChecked(true);
     };
     
     checkSession();
+  }, []);
+  
+  // Set up auth state listener separately to avoid conflicts
+  useEffect(() => {
+    if (!authChecked) return;
+    
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          if (session) {
+            setIsAuthenticated(true);
+            
+            // Get user role from metadata or fetch from profile table
+            const userMeta = session.user.user_metadata;
+            const role = userMeta?.role || 'resident'; 
+            setUserRole(role as 'admin' | 'staff' | 'resident');
+            
+            // Update current user info
+            setCurrentUser(prev => {
+              const newUser: UserInfo = {
+                userId: session.user.id,
+                email: session.user.email,
+                name: userMeta?.full_name || userMeta?.name,
+                role: role
+              };
+              return newUser;
+            });
+            
+            // Fetch detailed user information in a separate effect
+          }
+        } else if (event === 'SIGNED_OUT') {
+          setIsAuthenticated(false);
+          setUserRole(null);
+          setCurrentUser(null);
+        }
+      }
+    );
     
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [authChecked]);
   
-  // Don't render routes until auth is checked to prevent redirect loops
-  if (!authChecked) {
-    return <div className="flex h-screen items-center justify-center">
-      <p>Loading application...</p>
-    </div>;
+  // Fetch additional user data in a separate effect to avoid auth state conflicts
+  useEffect(() => {
+    if (!currentUser?.userId || !currentUser.role || !isAuthenticated) return;
+    
+    const fetchUserDetails = async () => {
+      if (currentUser.role === 'resident') {
+        try {
+          const { data: residentData } = await supabase
+            .from('resident')
+            .select('*')
+            .eq('email', currentUser.email)
+            .single();
+            
+          if (residentData) {
+            setCurrentUser(prevState => {
+              if (!prevState) return null;
+              return {
+                ...prevState,
+                resident_id: residentData.resident_id,
+                name: residentData.name,
+                contact: residentData.contact_number,
+                apartment: residentData.apartment_id?.toString(),
+                status: residentData.status,
+              };
+            });
+          }
+        } catch (error) {
+          console.error('Error fetching resident data:', error);
+        }
+      } else if (currentUser.role === 'staff' || currentUser.role === 'admin') {
+        try {
+          const { data: staffData } = await supabase
+            .from('staff')
+            .select('*')
+            .eq('name', currentUser.name)
+            .single();
+            
+          if (staffData) {
+            setCurrentUser(prevState => {
+              if (!prevState) return null;
+              return {
+                ...prevState,
+                id: staffData.staff_id,
+                name: staffData.name,
+                contact: staffData.contact_number,
+              };
+            });
+          }
+        } catch (error) {
+          console.error('Error fetching staff data:', error);
+        }
+      }
+    };
+    
+    fetchUserDetails();
+  }, [currentUser?.userId, currentUser?.role, currentUser?.email, currentUser?.name, isAuthenticated]);
+  
+  // Show loading state while initializing
+  if (initializing) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <p>Loading application...</p>
+      </div>
+    );
   }
   
   return (
