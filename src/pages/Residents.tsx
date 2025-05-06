@@ -98,8 +98,8 @@ const Residents: React.FC = () => {
   // Handle search functionality
   const filteredResidents = residents?.filter(resident =>
     resident.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (resident.apartment?.toString() || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    resident.email?.toLowerCase().includes(searchTerm.toLowerCase())
+    (resident.apartment?.toString() || '').includes(searchTerm.toLowerCase()) ||
+    (resident.email || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Show error toast if fetching fails
@@ -151,7 +151,7 @@ const Residents: React.FC = () => {
           contact_number: newResident.contact || newResident.contact_number,
           apartment_id: typeof newResident.apartment === 'string' ? 
             parseInt(newResident.apartment) : 
-            newResident.apartment_id || newResident.apartment || 0,
+            newResident.apartment_id || (newResident.apartment as number) || 0,
           status: newResident.status,
           joining_date: new Date().toISOString().split('T')[0]
         }])
@@ -269,14 +269,14 @@ const Residents: React.FC = () => {
                   <TableBody>
                     {filteredResidents && filteredResidents.length > 0 ? (
                       filteredResidents.map((resident) => (
-                        <TableRow key={resident.id}>
+                        <TableRow key={resident.resident_id || resident.id}>
                           <TableCell className="font-medium">{resident.name}</TableCell>
                           <TableCell>{resident.apartment}</TableCell>
                           <TableCell>{resident.status}</TableCell>
                           <TableCell>
                             <div className="flex items-center">
                               <Phone className="mr-2 h-4 w-4" />
-                              <span className="hidden md:inline">{resident.contact}</span>
+                              <span className="hidden md:inline">{resident.contact || resident.contact_number}</span>
                             </div>
                           </TableCell>
                           <TableCell className="hidden md:table-cell">

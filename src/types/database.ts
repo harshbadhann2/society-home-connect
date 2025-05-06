@@ -159,13 +159,12 @@ export interface User {
 export interface Apartment {
   apartment_id: number;
   apartment_number: string;
-  type?: string; // Used in UI but not in database
-  size?: string; // Used in UI but not in database
-  bedrooms?: number; 
-  bathrooms?: number;
-  wing?: string;
+  apartment_status?: string;
+  block?: string;
+  floor_number?: number;
   owner_name?: string;
   owner_contact?: string;
+  wing_id?: number;
   // For compatibility
   id?: number;
   unit?: string; // Alias for apartment_number
@@ -176,6 +175,20 @@ export interface Apartment {
   wing?: string;
   owner?: string; // Alias for owner_name
   status?: string; // Alias for apartment_status
+}
+
+export interface Wing {
+  wing_id: number;
+  wing_name: string;
+  total_floors?: number;
+  total_apartments?: number;
+  // For compatibility
+  id?: number;
+  name?: string; // Alias for wing_name
+  floors?: number; // Alias for total_floors
+  apartments?: number; // Alias for total_apartments
+  maintenance_day?: string;
+  status?: string;
 }
 
 export interface Delivery {
@@ -771,5 +784,57 @@ export const mockDeliveries: Delivery[] = [
     courier_company_name: 'Flipkart',
     delivery_date: '2025-05-03T09:45:00',
     delivery_status: 'Received'
+  }
+];
+
+// Add mock wings data
+export const mockWings: Wing[] = [
+  {
+    wing_id: 1,
+    wing_name: 'Wing A',
+    total_floors: 10,
+    total_apartments: 40,
+    maintenance_day: 'Monday',
+    status: 'Active',
+    id: 1,
+    name: 'Wing A',
+    floors: 10,
+    apartments: 40
+  },
+  {
+    wing_id: 2,
+    wing_name: 'Wing B',
+    total_floors: 10,
+    total_apartments: 40,
+    maintenance_day: 'Tuesday',
+    status: 'Active',
+    id: 2,
+    name: 'Wing B',
+    floors: 10,
+    apartments: 40
+  },
+  {
+    wing_id: 3,
+    wing_name: 'Wing C',
+    total_floors: 8,
+    total_apartments: 32,
+    maintenance_day: 'Wednesday',
+    status: 'Under Maintenance',
+    id: 3,
+    name: 'Wing C',
+    floors: 8,
+    apartments: 32
+  },
+  {
+    wing_id: 4,
+    wing_name: 'Wing D',
+    total_floors: 12,
+    total_apartments: 48,
+    maintenance_day: 'Thursday',
+    status: 'Active',
+    id: 4,
+    name: 'Wing D',
+    floors: 12,
+    apartments: 48
   }
 ];

@@ -104,7 +104,7 @@ const Notices: React.FC = () => {
           posted_by: item.posted_by || '',
           posted_date: item.posted_date || '',
           date: item.posted_date || '', // Map posted_date to date for compatibility
-          priority: item.priority || 'normal',
+          priority: 'normal', // Default priority since it's not in database
           category: 'General', // Default category since it's not in database
           // Compatibility fields
           id: item.notice_id,
@@ -116,8 +116,14 @@ const Notices: React.FC = () => {
     }
   });
 
-  const highPriorityCount = notices?.filter(notice => notice.priority === 'high').length || 0;
-  const maintenanceCount = notices?.filter(notice => notice.category === 'Maintenance').length || 0;
+  const highPriorityCount = notices?.filter(notice => 
+    notice.priority === 'high' || notice.priority === 'High'
+  ).length || 0;
+  
+  const maintenanceCount = notices?.filter(notice => 
+    notice.category === 'Maintenance' || notice.category === 'maintenance'
+  ).length || 0;
+  
   const upcomingCount = notices?.length || 0;
 
   return (
@@ -192,23 +198,23 @@ const Notices: React.FC = () => {
               <div className="space-y-4">
                 {notices?.map((notice) => (
                   <div
-                    key={notice.id}
+                    key={notice.id || notice.notice_id}
                     className="flex flex-col md:flex-row md:items-center justify-between p-4 border rounded-md hover:bg-muted/50 transition-colors"
                   >
                     <div className="space-y-1">
                       <div className="font-medium">{notice.title}</div>
                       <div className="text-sm text-muted-foreground">
-                        {new Date(notice.date).toLocaleDateString()}
+                        {new Date(notice.date || notice.posted_date).toLocaleDateString()}
                       </div>
-                      <p className="text-sm mt-2">{notice.content}</p>
+                      <p className="text-sm mt-2">{notice.content || notice.message}</p>
                     </div>
                     <div className="flex items-center mt-2 md:mt-0 gap-2">
-                      <Badge variant="outline">{notice.category}</Badge>
+                      <Badge variant="outline">{notice.category || 'General'}</Badge>
                       <Badge
                         variant="outline"
-                        className={getPriorityColor(notice.priority)}
+                        className={getPriorityColor(notice.priority || 'normal')}
                       >
-                        {notice.priority}
+                        {notice.priority || 'normal'}
                       </Badge>
                     </div>
                   </div>

@@ -22,89 +22,10 @@ import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { RecordPaymentDialog } from '@/components/dialogs/RecordPaymentDialog';
-import { Payment, Resident } from '@/types/database';
+import { Payment, mockPaymentResidents, mockPayments } from '@/types/database';
 
-// Mock payments data
-const mockPayments = [
-  {
-    id: 1,
-    transaction_id: 1,
-    description: 'Maintenance Fee - May 2025',
-    resident_id: 1,
-    apartment: 'A-101',
-    amount: 250.00,
-    date: '2025-05-02',
-    transaction_date: '2025-05-02',
-    status: 'Paid',
-    banking_status: 'Paid',
-    currency: 'INR',
-    payment_method: 'Online',
-    purpose: 'Maintenance Fee'
-  },
-  {
-    id: 2,
-    transaction_id: 2,
-    description: 'Maintenance Fee - May 2025',
-    resident_id: 2,
-    apartment: 'B-202',
-    amount: 250.00,
-    date: '2025-05-01',
-    transaction_date: '2025-05-01',
-    status: 'Paid',
-    banking_status: 'Paid',
-    currency: 'INR',
-    payment_method: 'Cash',
-    purpose: 'Maintenance Fee'
-  },
-  {
-    id: 3,
-    transaction_id: 3,
-    description: 'Maintenance Fee - May 2025',
-    resident_id: 3,
-    apartment: 'C-303',
-    amount: 250.00,
-    date: '2025-05-03',
-    transaction_date: '2025-05-03',
-    status: 'Pending',
-    banking_status: 'Pending',
-    currency: 'INR',
-    payment_method: 'Pending',
-    purpose: 'Maintenance Fee'
-  },
-  {
-    id: 4,
-    transaction_id: 4,
-    description: 'Maintenance Fee - May 2025',
-    resident_id: 4,
-    apartment: 'D-404',
-    amount: 250.00,
-    date: '2025-05-02',
-    transaction_date: '2025-05-02',
-    status: 'Pending',
-    banking_status: 'Pending',
-    currency: 'INR',
-    payment_method: 'Pending',
-    purpose: 'Maintenance Fee'
-  },
-  {
-    id: 5,
-    transaction_id: 5,
-    description: 'Community Hall Booking',
-    resident_id: 1,
-    apartment: 'A-101',
-    amount: 100.00,
-    date: '2025-04-28',
-    transaction_date: '2025-04-28',
-    status: 'Paid',
-    banking_status: 'Paid',
-    currency: 'INR',
-    payment_method: 'Online',
-    purpose: 'Hall Booking'
-  },
-];
-
-// Mock residents data for payments component
-const mockPaymentResidents = [
+// If mockPaymentResidents doesn't exist in database.ts, add it here
+const localMockPaymentResidents = [
   { id: 1, resident_id: 1, name: "John Doe", apartment: "A-101" },
   { id: 2, resident_id: 2, name: "Jane Smith", apartment: "B-202" },
   { id: 3, resident_id: 3, name: "Robert Johnson", apartment: "C-303" },
@@ -138,7 +59,7 @@ const Payments: React.FC = () => {
         
         if (error) {
           console.error('Supabase error:', error);
-          return mockPayments;
+          return mockPayments || [];
         }
         
         // Map banking data to our Payment interface
@@ -158,7 +79,7 @@ const Payments: React.FC = () => {
         })) as Payment[];
       } catch (err) {
         console.error('Error fetching payments:', err);
-        return mockPayments;
+        return mockPayments || [];
       }
     }
   });
@@ -171,7 +92,7 @@ const Payments: React.FC = () => {
         
         if (error) {
           console.error('Supabase error fetching residents:', error);
-          return mockPaymentResidents;
+          return localMockPaymentResidents;
         }
         
         return data.map(r => ({
@@ -182,32 +103,28 @@ const Payments: React.FC = () => {
         }));
       } catch (err) {
         console.error('Error fetching residents:', err);
-        return mockPaymentResidents;
+        return localMockPaymentResidents;
       }
     }
   });
 
   const getResidentName = (residentId: number) => {
-    if (residents && residents.length > 0) {
-      const resident = residents.find(r => r.resident_id === residentId || r.id === residentId);
-      return resident ? resident.name : 'Unknown';
-    }
-    return 'Unknown';
+    if (!residents) return 'Unknown';
+    const resident = residents.find(r => r.resident_id === residentId || r.id === residentId);
+    return resident?.name || 'Unknown';
   };
 
   const getResidentApartment = (residentId: number) => {
-    if (residents && residents.length > 0) {
-      const resident = residents.find(r => r.resident_id === residentId || r.id === residentId);
-      return resident ? resident.apartment : 'N/A';
-    }
-    return 'N/A';
+    if (!residents) return 'N/A';
+    const resident = residents.find(r => r.resident_id === residentId || r.id === residentId);
+    return resident?.apartment || 'N/A';
   };
 
   // Calculate payment statistics
-  const paidPayments = payments?.filter(p => p.status.toLowerCase() === 'paid') || [];
+  const paidPayments = payments?.filter(p => (p.status || p.banking_status || '').toLowerCase() === 'paid') || [];
   const totalCollected = paidPayments.reduce((sum, payment) => sum + payment.amount, 0);
   
-  const pendingPayments = payments?.filter(p => p.status.toLowerCase() === 'pending') || [];
+  const pendingPayments = payments?.filter(p => (p.status || p.banking_status || '').toLowerCase() === 'pending') || [];
   const pendingAmount = pendingPayments.reduce((sum, payment) => sum + payment.amount, 0);
   
   const maintenanceFee = 250; // Assumption based on mock data
@@ -320,19 +237,19 @@ const Payments: React.FC = () => {
                   </TableHeader>
                   <TableBody>
                     {payments?.map((payment) => (
-                      <TableRow key={payment.id}>
-                        <TableCell className="font-medium">{payment.description}</TableCell>
+                      <TableRow key={payment.id || payment.transaction_id}>
+                        <TableCell className="font-medium">{payment.description || payment.purpose}</TableCell>
                         <TableCell>{getResidentName(payment.resident_id)}</TableCell>
                         <TableCell className="hidden md:table-cell">
                           {payment.apartment || getResidentApartment(payment.resident_id)}
                         </TableCell>
                         <TableCell>₹{payment.amount.toFixed(2)}</TableCell>
                         <TableCell className="hidden md:table-cell">
-                          {new Date(payment.date).toLocaleDateString()}
+                          {new Date(payment.date || payment.transaction_date).toLocaleDateString()}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className={getStatusColor(payment.status)}>
-                            {payment.status}
+                          <Badge variant="outline" className={getStatusColor(payment.status || payment.banking_status)}>
+                            {payment.status || payment.banking_status}
                           </Badge>
                         </TableCell>
                       </TableRow>

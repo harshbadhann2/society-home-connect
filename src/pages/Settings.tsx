@@ -1,3 +1,4 @@
+
 import React, { useState, useContext, useEffect } from 'react';
 import Layout from '@/components/layout/layout';
 import { useToast } from '@/hooks/use-toast';
@@ -58,23 +59,33 @@ const Settings: React.FC = () => {
             .limit(1);
             
           if (data && data.length > 0) {
-            return data[0];
+            return {
+              ...data[0],
+              // Add fields used in the component that might not be in the database
+              id: data[0].staff_id
+            };
           } else {
-            return mockStaff[0]; // Fallback to mock data
+            const mockUser = { ...mockStaff[0], id: mockStaff[0].staff_id };
+            return mockUser; // Fallback to mock data
           }
         }
         
         // For residents, try to fetch from database first
         if (userRole === 'resident') {
           const { data, error } = await supabase
-            .from('residents')
+            .from('resident')
             .select('*')
             .limit(1);
             
           if (data && data.length > 0) {
-            return data[0];
+            return {
+              ...data[0],
+              // Add fields used in the component that might not be in the database
+              id: data[0].resident_id
+            };
           } else {
-            return mockResidents[0]; // Fallback to mock data
+            const mockUser = { ...mockResidents[0], id: mockResidents[0].resident_id };
+            return mockUser; // Fallback to mock data
           }
         }
         
@@ -86,11 +97,12 @@ const Settings: React.FC = () => {
           const admin = mockUsers.find(user => user.role === 'admin');
           return {
             name: admin?.email?.split('@')[0] || 'Admin',
-            email: admin?.email || 'admin@example.com'
+            email: admin?.email || 'admin@example.com',
+            id: admin?.user_id
           };
         }
-        if (userRole === 'staff') return mockStaff[0];
-        return mockResidents[0];
+        if (userRole === 'staff') return { ...mockStaff[0], id: mockStaff[0].staff_id };
+        return { ...mockResidents[0], id: mockResidents[0].resident_id };
       }
     }
   });
@@ -109,12 +121,13 @@ const Settings: React.FC = () => {
         
         if (userRole === 'resident') {
           const { data, error } = await supabase
-            .from('residents')
+            .from('resident')
             .update({
               name: updatedSettings.name,
               email: updatedSettings.email,
             })
-            .eq('id', userData.id);
+            .eq('resident_id', userData.resident_id || userData.id)
+            .select();
           
           if (error) throw error;
           return data;
@@ -127,7 +140,8 @@ const Settings: React.FC = () => {
               name: updatedSettings.name,
               email: updatedSettings.email,
             })
-            .eq('id', userData.id);
+            .eq('staff_id', userData.staff_id || userData.id)
+            .select();
           
           if (error) throw error;
           return data;
@@ -162,20 +176,24 @@ const Settings: React.FC = () => {
   // Update account settings from userData when it loads
   useEffect(() => {
     if (userData) {
-      if ('name' in userData && 'email' in userData) {
-        setAccountSettings({
-          name: userData.name,
-          email: userData.email,
-        });
-      } else if ('email' in userData) {
-        // If we only have email (like for admin)
+      // For admin users with just email
+      if (userRole === 'admin' && 'email' in userData) {
         setAccountSettings({
           name: userData.name || userData.email.split('@')[0],
           email: userData.email,
         });
+        return;
+      }
+      
+      // For resident and staff users
+      if ('name' in userData && 'email' in userData) {
+        setAccountSettings({
+          name: userData.name,
+          email: userData.email || '',
+        });
       }
     }
-  }, [userData]);
+  }, [userData, userRole]);
 
   const handleAccountSave = () => {
     updateUserMutation.mutate(accountSettings);

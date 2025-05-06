@@ -1,23 +1,11 @@
-
 import React, { useState, useEffect, useContext } from 'react';
 import Layout from '@/components/layout/layout';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User, Mail, Phone, Home, Key, BadgeIndianRupee, CalendarDays, UserRound, BellRing, FileText, Settings, Shield, CreditCard, Lock } from 'lucide-react';
-import AuthContext from '@/context/AuthContext';
-import { mockResidents } from '@/types/database';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/components/ui/use-toast';
-import { Badge } from '@/components/ui/badge';
-import { format } from 'date-fns';
-import { Link } from 'react-router-dom';
-import { Calendar, MessageSquare, Bed } from 'lucide-react';
+import { Staff, Resident, User, mockStaff, mockResidents, mockUsers } from '@/types/database';
+import AuthContext from '@/context/AuthContext';
+import { Loader2, Mail, Phone, Calendar, Home, User as UserIcon, Shield } from 'lucide-react';
 
 const Profile: React.FC = () => {
   const { userRole, currentUser } = useContext(AuthContext);
