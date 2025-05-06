@@ -138,7 +138,13 @@ const Profile: React.FC<ProfileProps> = () => {
         } as FallbackData;
       }
     },
-    enabled: !!currentUser?.userId
+    enabled: !!currentUser?.userId,
+    // Add staleTime to prevent frequent refetches
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    // Prevent refetches on window focus
+    refetchOnWindowFocus: false,
+    // Prevent automatic refetches
+    refetchInterval: false
   });
 
   if (isLoading) {

@@ -36,8 +36,12 @@ interface ProtectedRouteProps {
 const ProtectedRoute = ({ element, allowedRoles }: ProtectedRouteProps) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [userRole, setUserRole] = useState<'admin' | 'staff' | 'resident' | null>(null);
+  const location = useLocation();
   
   useEffect(() => {
+    // Avoid unnecessary rechecks that might trigger redirects
+    if (isAuthenticated !== null) return;
+    
     const checkAuth = async () => {
       const { data } = await supabase.auth.getSession();
       if (data.session) {
@@ -55,7 +59,7 @@ const ProtectedRoute = ({ element, allowedRoles }: ProtectedRouteProps) => {
     };
     
     checkAuth();
-  }, []);
+  }, [location.pathname]); // Only recheck when path changes, not on every render
   
   if (isAuthenticated === null) {
     // Still checking auth status
@@ -87,9 +91,13 @@ const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userRole, setUserRole] = useState<'admin' | 'staff' | 'resident' | null>(null);
   const [currentUser, setCurrentUser] = useState<UserInfo | null>(null);
+  const [authChecked, setAuthChecked] = useState(false); // New state to track initial auth check
   
   // Set up auth state listener
   useEffect(() => {
+    // Prevent multiple subscription attempts
+    if (authChecked) return;
+    
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         setIsAuthenticated(!!session);
@@ -118,14 +126,17 @@ const App = () => {
                 .single();
                 
               if (residentData) {
-                setCurrentUser(prevState => ({
-                  ...prevState!,
-                  resident_id: residentData.resident_id,
-                  name: residentData.name,
-                  contact: residentData.contact_number,
-                  apartment: residentData.apartment_id?.toString(), // Convert to string explicitly
-                  status: residentData.status,
-                }));
+                setCurrentUser(prevState => {
+                  if (!prevState) return null;
+                  return {
+                    ...prevState,
+                    resident_id: residentData.resident_id,
+                    name: residentData.name,
+                    contact: residentData.contact_number,
+                    apartment: residentData.apartment_id?.toString(), // Convert to string explicitly
+                    status: residentData.status,
+                  };
+                });
               }
             } catch (error) {
               console.error('Error fetching resident data:', error);
@@ -139,12 +150,15 @@ const App = () => {
                 .single();
                 
               if (staffData) {
-                setCurrentUser(prevState => ({
-                  ...prevState!,
-                  id: staffData.staff_id,
-                  name: staffData.name,
-                  contact: staffData.contact_number,
-                }));
+                setCurrentUser(prevState => {
+                  if (!prevState) return null;
+                  return {
+                    ...prevState,
+                    id: staffData.staff_id,
+                    name: staffData.name,
+                    contact: staffData.contact_number,
+                  };
+                });
               }
             } catch (error) {
               console.error('Error fetching staff data:', error);
@@ -154,10 +168,13 @@ const App = () => {
           setUserRole(null);
           setCurrentUser(null);
         }
+        
+        // Mark auth check as complete
+        setAuthChecked(true);
       }
     );
     
-    // Initial session check
+    // Initial session check - only do this once
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setIsAuthenticated(!!session);
@@ -175,6 +192,9 @@ const App = () => {
           role: role
         });
       }
+      
+      // Mark auth check as complete after initial check
+      setAuthChecked(true);
     };
     
     checkSession();
@@ -183,6 +203,13 @@ const App = () => {
       subscription.unsubscribe();
     };
   }, []);
+  
+  // Don't render routes until auth is checked to prevent redirect loops
+  if (!authChecked) {
+    return <div className="flex h-screen items-center justify-center">
+      <p>Loading application...</p>
+    </div>;
+  }
   
   return (
     <ThemeProvider defaultTheme="light">
