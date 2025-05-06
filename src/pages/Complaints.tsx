@@ -24,7 +24,7 @@ import { FileComplaintDialog } from '@/components/dialogs/FileComplaintDialog';
 import { Complaint, mockComplaints } from '@/types/database';
 
 // Common type for complaint structure
-interface Complaint {
+interface ComplaintDisplay extends Complaint {
   id: number;
   resident_id: number;
   subject: string;
@@ -35,49 +35,6 @@ interface Complaint {
   date_resolved?: string;
   assigned_to?: string;
 }
-
-// Mock complaints data
-const mockComplaints = [
-  {
-    id: 1,
-    resident_id: 1,
-    subject: 'Water Leakage in Bathroom',
-    description: 'There is water leaking from the ceiling of my bathroom.',
-    category: 'Plumbing',
-    status: 'In Progress',
-    date_filed: '2025-04-28',
-    assigned_to: 'Maintenance Team',
-  },
-  {
-    id: 2,
-    resident_id: 3,
-    subject: 'Noise Complaint',
-    description: 'Excessive noise from apartment B-203 late at night.',
-    category: 'Noise',
-    status: 'Pending',
-    date_filed: '2025-05-01',
-  },
-  {
-    id: 3,
-    resident_id: 2,
-    subject: 'Common Area Light Not Working',
-    description: 'The light in the stairwell of Block C has been out for two days.',
-    category: 'Electrical',
-    status: 'Resolved',
-    date_filed: '2025-04-25',
-    date_resolved: '2025-04-27',
-    assigned_to: 'Electrician',
-  },
-  {
-    id: 4,
-    resident_id: 1,
-    subject: 'Garbage Not Collected',
-    description: 'The garbage from Block A has not been collected for two days.',
-    category: 'Cleanliness',
-    status: 'Pending',
-    date_filed: '2025-05-02',
-  }
-];
 
 const getStatusColor = (status: string) => {
   switch (status.toLowerCase()) {
@@ -136,7 +93,7 @@ const Complaints: React.FC = () => {
           category: 'General',
           status: item.complaint_status || 'Pending',
           date_filed: item.date_raised || new Date().toISOString()
-        }) as Complaint);
+        }) as ComplaintDisplay);
       } catch (err) {
         console.error('Error fetching complaints:', err);
         return mockComplaints;
