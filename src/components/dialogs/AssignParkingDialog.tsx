@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Resident } from "@/types/database";
 
 interface AssignParkingDialogProps {
   open: boolean;
@@ -23,11 +24,12 @@ export function AssignParkingDialog({ open, onOpenChange, onAssign, spotId }: As
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
+  // Fetch residents from the resident table (not residents)
   const { data: residents } = useQuery({
-    queryKey: ["residents"],
+    queryKey: ["resident-data"],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase.from('residents').select('id, name');
+        const { data, error } = await supabase.from('resident').select('resident_id, name');
         
         if (error) {
           console.error('Error fetching residents:', error);
@@ -108,7 +110,7 @@ export function AssignParkingDialog({ open, onOpenChange, onAssign, spotId }: As
               </SelectTrigger>
               <SelectContent>
                 {residents?.map((resident) => (
-                  <SelectItem key={resident.id} value={resident.id.toString()}>
+                  <SelectItem key={resident.resident_id} value={resident.resident_id.toString()}>
                     {resident.name}
                   </SelectItem>
                 ))}

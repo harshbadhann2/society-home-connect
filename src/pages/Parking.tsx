@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Layout from '@/components/layout/layout';
 import { Button } from '@/components/ui/button';
@@ -92,10 +91,10 @@ const Parking: React.FC = () => {
 
   // Fetch residents data for names
   const { data: residents, isLoading: residentsLoading } = useQuery({
-    queryKey: ['residents'],
+    queryKey: ['resident-names'],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase.from('residents').select('id, name');
+        const { data, error } = await supabase.from('resident').select('resident_id, name');
         
         if (error) {
           console.error('Supabase error fetching residents:', error);
@@ -115,7 +114,7 @@ const Parking: React.FC = () => {
     
     // Use residents from database if available
     if (residents && residents.length > 0) {
-      const resident = residents.find((r: any) => r.id === residentId);
+      const resident = residents.find((r) => r.resident_id === residentId);
       return resident ? resident.name : 'Unknown';
     }
     
@@ -124,6 +123,7 @@ const Parking: React.FC = () => {
     return mockResident ? mockResident.name : 'Unknown';
   };
 
+  // Filtered parking spots based on search term
   const filteredParking = parkingSpots.filter(spot => {
     const spotNumber = spot.spot_number?.toLowerCase() || '';
     const vehicleNumber = spot.vehicle_number?.toLowerCase() || '';
@@ -132,9 +132,9 @@ const Parking: React.FC = () => {
     const searchTermLower = searchTerm?.toLowerCase() || '';
     
     return spotNumber.includes(searchTermLower) ||
-           vehicleNumber.includes(searchTermLower) ||
-           residentName.includes(searchTermLower) ||
-           status.includes(searchTermLower);
+          vehicleNumber.includes(searchTermLower) ||
+          residentName.includes(searchTermLower) ||
+          status.includes(searchTermLower);
   });
 
   const handleAssignParking = (spotId: number) => {

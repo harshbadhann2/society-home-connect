@@ -23,9 +23,9 @@ export function AddDeliveryDialog({ open, onOpenChange, onAdd }: AddDeliveryDial
   const { toast } = useToast();
 
   const { data: residents } = useQuery({
-    queryKey: ["residents"],
+    queryKey: ["delivery-residents"],
     queryFn: async () => {
-      const { data, error } = await supabase.from('residents').select('id, name, apartment');
+      const { data, error } = await supabase.from('resident').select('resident_id, name, apartment');
       if (error) {
         console.error('Error fetching residents:', error);
         return [];
@@ -47,13 +47,12 @@ export function AddDeliveryDialog({ open, onOpenChange, onAdd }: AddDeliveryDial
     setIsSubmitting(true);
     try {
       const { error } = await supabase
-        .from('deliveries')
+        .from('delivery_records')
         .insert({
           resident_id: residentId,
-          package_info: packageInfo,
-          courier_name: courier,
-          status: 'Received',
-          received_date: new Date().toISOString(),
+          courier_company_name: courier,
+          delivery_status: 'Received',
+          delivery_date: new Date().toISOString(),
         });
 
       if (error) throw error;
@@ -96,7 +95,7 @@ export function AddDeliveryDialog({ open, onOpenChange, onAdd }: AddDeliveryDial
               </SelectTrigger>
               <SelectContent>
                 {residents?.map((resident) => (
-                  <SelectItem key={resident.id} value={resident.id.toString()}>
+                  <SelectItem key={resident.resident_id} value={resident.resident_id.toString()}>
                     {resident.name} ({resident.apartment})
                   </SelectItem>
                 ))}
