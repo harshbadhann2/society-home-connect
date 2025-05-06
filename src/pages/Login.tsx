@@ -35,8 +35,8 @@ const Login: React.FC = () => {
         .from('users')
         .select('*')
         .eq('email', email)
-        .eq('password', password) // NOTE: In a real application, never store passwords in plaintext
-        .in('role', ['resident', 'staff'])
+        .eq('password_hash', password) // NOTE: In a real application, never store passwords in plaintext
+        .in('role', ['resident', 'staff', 'admin'])
         .single();
 
       if (userError) {
@@ -44,7 +44,7 @@ const Login: React.FC = () => {
         console.info('Falling back to mock users');
 
         // Fall back to mock data
-        const user = mockUsers.find(user => user.email === email && user.password === password && (user.role === 'resident' || user.role === 'staff'));
+        const user = mockUsers.find(user => user.email === email && user.password === password);
         
         if (!user) {
           toast({
@@ -60,7 +60,7 @@ const Login: React.FC = () => {
         let userDetails = null;
         if (user.role === 'resident') {
           const { data: residentData, error: residentError } = await supabase
-            .from('residents')
+            .from('resident')
             .select('*')
             .eq('email', email)
             .single();
@@ -69,26 +69,65 @@ const Login: React.FC = () => {
             // Fall back to mock data
             userDetails = mockResidents.find(resident => resident.email === email);
           } else {
-            userDetails = residentData;
+            userDetails = {
+              id: residentData.resident_id,
+              name: residentData.name,
+              email: residentData.email,
+              contact: residentData.contact_number,
+              apartment: `${residentData.apartment_id || 'A101'}`,
+              status: residentData.status,
+              resident_id: residentData.resident_id
+            };
           }
         } else if (user.role === 'staff') {
           const { data: staffData, error: staffError } = await supabase
             .from('staff')
             .select('*')
-            .eq('email', email)
+            .eq('contact_number', email) // Staff might use phone as login
             .single();
             
           if (staffError || !staffData) {
-            // Fall back to mock data
-            userDetails = mockStaff.find(staff => staff.email === email);
+            // Try email
+            const { data: staffByEmailData, error: staffByEmailError } = await supabase
+              .from('staff')
+              .select('*')
+              .eq('name', email.split('@')[0]) // Simple assumption for mock data
+              .single();
+              
+            if (staffByEmailError || !staffByEmailData) {
+              // Fall back to mock data
+              userDetails = mockStaff.find(staff => staff.email === email);
+            } else {
+              userDetails = {
+                id: staffByEmailData.staff_id,
+                name: staffByEmailData.name,
+                email: email,
+                contact: staffByEmailData.contact_number,
+                status: 'Active',
+              };
+            }
           } else {
-            userDetails = staffData;
+            userDetails = {
+              id: staffData.staff_id,
+              name: staffData.name,
+              email: email,
+              contact: staffData.contact_number,
+              status: 'Active',
+            };
           }
+        } else if (user.role === 'admin') {
+          // Admin user details
+          userDetails = {
+            id: 1,
+            name: "Admin",
+            email: email,
+            status: "Active",
+          };
         }
         
         // Use mock user with details
         setIsAuthenticated(true);
-        setUserRole(user.role as 'resident' | 'staff');
+        setUserRole(user.role as 'admin' | 'staff' | 'resident');
         setCurrentUser(userDetails || { name: email.split('@')[0], email });
         
         toast({
@@ -104,7 +143,7 @@ const Login: React.FC = () => {
       let userDetails = null;
       if (userData.role === 'resident') {
         const { data: residentData, error: residentError } = await supabase
-          .from('residents')
+          .from('resident')
           .select('*')
           .eq('email', email)
           .single();
@@ -113,25 +152,47 @@ const Login: React.FC = () => {
           // Fall back to mock data
           userDetails = mockResidents.find(resident => resident.email === email);
         } else {
-          userDetails = residentData;
+          userDetails = {
+            id: residentData.resident_id,
+            name: residentData.name,
+            email: residentData.email,
+            contact: residentData.contact_number,
+            apartment: `${residentData.apartment_id || 'A101'}`,
+            status: residentData.status,
+            resident_id: residentData.resident_id
+          };
         }
       } else if (userData.role === 'staff') {
         const { data: staffData, error: staffError } = await supabase
           .from('staff')
           .select('*')
-          .eq('email', email)
+          .eq('contact_number', email)
           .single();
           
         if (staffError || !staffData) {
           // Fall back to mock data
           userDetails = mockStaff.find(staff => staff.email === email);
         } else {
-          userDetails = staffData;
+          userDetails = {
+            id: staffData.staff_id,
+            name: staffData.name,
+            email: email,
+            contact: staffData.contact_number,
+            status: 'Active',
+          };
         }
+      } else if (userData.role === 'admin') {
+        // Admin user details
+        userDetails = {
+          id: userData.user_id,
+          name: userData.username,
+          email: userData.email,
+          status: "Active",
+        };
       }
 
       setIsAuthenticated(true);
-      setUserRole(userData.role as 'resident' | 'staff');
+      setUserRole(userData.role as 'admin' | 'staff' | 'resident');
       setCurrentUser(userDetails || { name: email.split('@')[0], email });
       
       toast({
