@@ -277,168 +277,202 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="h-screen flex items-center justify-center bg-gray-100">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl text-center">Apartment Management</CardTitle>
-          <CardDescription className="text-center">Login to access your account</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="resident" className="w-full">
-            <TabsList className="grid grid-cols-3 mb-4">
-              <TabsTrigger value="resident">
-                <Home className="mr-2 h-4 w-4" />
-                Resident
-              </TabsTrigger>
-              <TabsTrigger value="staff">
-                <User className="mr-2 h-4 w-4" />
-                Staff
-              </TabsTrigger>
-              <TabsTrigger value="admin">
-                <Building className="mr-2 h-4 w-4" />
-                Admin
-              </TabsTrigger>
-            </TabsList>
-            
-            {/* Resident Login Tab */}
-            <TabsContent value="resident" className="space-y-4">
-              <form onSubmit={handleResidentLogin}>
-                <div className="grid gap-2">
-                  <Label htmlFor="resident-username">
-                    <UserCircle className="mr-2 h-4 w-4 inline-block align-middle" />
-                    Username
-                  </Label>
-                  <Input 
-                    id="resident-username" 
-                    placeholder="Enter your username" 
-                    type="text"
-                    value={residentUsername}
-                    onChange={(e) => setResidentUsername(e.target.value)}
-                    disabled={loading}
-                  />
+    <div className="min-h-screen w-full flex items-center justify-center bg-cover bg-center" style={{ 
+      backgroundImage: 'linear-gradient(rgba(0, 0, 0, 0.75), rgba(0, 0, 0, 0.85)), url("https://images.unsplash.com/photo-1543269865-cbf427effbad?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80")',
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+    }}>
+      <div className="absolute inset-0 bg-gradient-to-br from-black/80 via-gray-900/80 to-black/80 z-0"></div>
+      
+      <div className="z-10 w-full max-w-md px-4 sm:px-0 animate-fade-in">
+        <Card className="backdrop-blur-sm bg-white/10 border border-white/20 shadow-xl">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-2xl text-center text-white">Apartment Management</CardTitle>
+            <CardDescription className="text-center text-white/80">Login to access your account</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Tabs defaultValue="resident" className="w-full">
+              <TabsList className="grid grid-cols-3 mb-4 bg-black/20">
+                <TabsTrigger value="resident" className="text-white data-[state=active]:bg-primary data-[state=active]:text-white">
+                  <Home className="mr-2 h-4 w-4" />
+                  Resident
+                </TabsTrigger>
+                <TabsTrigger value="staff" className="text-white data-[state=active]:bg-primary data-[state=active]:text-white">
+                  <User className="mr-2 h-4 w-4" />
+                  Staff
+                </TabsTrigger>
+                <TabsTrigger value="admin" className="text-white data-[state=active]:bg-primary data-[state=active]:text-white">
+                  <Building className="mr-2 h-4 w-4" />
+                  Admin
+                </TabsTrigger>
+              </TabsList>
+              
+              {/* Resident Login Tab */}
+              <TabsContent value="resident" className="space-y-4">
+                <form onSubmit={handleResidentLogin}>
+                  <div className="grid gap-2">
+                    <Label htmlFor="resident-username" className="text-white">
+                      <UserCircle className="mr-2 h-4 w-4 inline-block align-middle" />
+                      Username
+                    </Label>
+                    <Input 
+                      id="resident-username" 
+                      placeholder="Enter your username" 
+                      type="text"
+                      value={residentUsername}
+                      onChange={(e) => setResidentUsername(e.target.value)}
+                      disabled={loading}
+                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                    />
+                  </div>
+                  <div className="grid gap-2 mt-4">
+                    <Label htmlFor="resident-password" className="text-white">
+                      <Key className="mr-2 h-4 w-4 inline-block align-middle" />
+                      Password
+                    </Label>
+                    <Input 
+                      id="resident-password" 
+                      placeholder="Enter your password" 
+                      type="password"
+                      value={residentPassword}
+                      onChange={(e) => setResidentPassword(e.target.value)}
+                      disabled={loading}
+                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                    />
+                  </div>
+                  <Button className="w-full mt-4 bg-primary hover:bg-primary/80" disabled={loading}>
+                    {loading ? (
+                      <>
+                        <AlertCircle className="mr-2 h-4 w-4 animate-spin" />
+                        Logging in...
+                      </>
+                    ) : (
+                      "Login as Resident"
+                    )}
+                  </Button>
+                </form>
+              </TabsContent>
+              
+              {/* Staff Login Tab */}
+              <TabsContent value="staff" className="space-y-4">
+                <form onSubmit={handleStaffLogin}>
+                  <div className="grid gap-2">
+                    <Label htmlFor="staff-username" className="text-white">
+                      <UserCircle className="mr-2 h-4 w-4 inline-block align-middle" />
+                      Staff ID
+                    </Label>
+                    <Input 
+                      id="staff-username" 
+                      placeholder="Enter your staff ID" 
+                      type="text"
+                      value={staffUsername}
+                      onChange={(e) => setStaffUsername(e.target.value)}
+                      disabled={loading}
+                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                    />
+                  </div>
+                  <div className="grid gap-2 mt-4">
+                    <Label htmlFor="staff-password" className="text-white">
+                      <Key className="mr-2 h-4 w-4 inline-block align-middle" />
+                      Password
+                    </Label>
+                    <Input 
+                      id="staff-password" 
+                      placeholder="Enter your password" 
+                      type="password"
+                      value={staffPassword}
+                      onChange={(e) => setStaffPassword(e.target.value)}
+                      disabled={loading}
+                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                    />
+                  </div>
+                  <Button className="w-full mt-4 bg-primary hover:bg-primary/80" disabled={loading}>
+                    {loading ? (
+                      <>
+                        <AlertCircle className="mr-2 h-4 w-4 animate-spin" />
+                        Logging in...
+                      </>
+                    ) : (
+                      "Login as Staff"
+                    )}
+                  </Button>
+                </form>
+              </TabsContent>
+              
+              {/* Admin Login Tab */}
+              <TabsContent value="admin" className="space-y-4">
+                <form onSubmit={handleAdminLogin}>
+                  <div className="grid gap-2">
+                    <Label htmlFor="admin-username" className="text-white">
+                      <UserCircle className="mr-2 h-4 w-4 inline-block align-middle" />
+                      Admin Username
+                    </Label>
+                    <Input 
+                      id="admin-username" 
+                      placeholder="Enter admin username" 
+                      type="text"
+                      value={adminUsername}
+                      onChange={(e) => setAdminUsername(e.target.value)}
+                      disabled={loading}
+                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                    />
+                  </div>
+                  <div className="grid gap-2 mt-4">
+                    <Label htmlFor="admin-password" className="text-white">
+                      <Key className="mr-2 h-4 w-4 inline-block align-middle" />
+                      Password
+                    </Label>
+                    <Input 
+                      id="admin-password" 
+                      placeholder="Enter your password" 
+                      type="password"
+                      value={adminPassword}
+                      onChange={(e) => setAdminPassword(e.target.value)}
+                      disabled={loading}
+                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                    />
+                  </div>
+                  <Button className="w-full mt-4 bg-primary hover:bg-primary/80" disabled={loading}>
+                    {loading ? (
+                      <>
+                        <AlertCircle className="mr-2 h-4 w-4 animate-spin" />
+                        Logging in...
+                      </>
+                    ) : (
+                      "Login as Admin"
+                    )}
+                  </Button>
+                </form>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
+          <CardFooter className="flex flex-col justify-center">
+            <p className="text-sm text-white/70 mb-2">
+              Contact admin for help with login credentials
+            </p>
+            <div className="bg-black/30 p-3 rounded-lg w-full text-sm text-white/90">
+              <p className="font-bold mb-1 text-center text-primary">Demo Credentials</p>
+              <div className="grid grid-cols-3 gap-2 text-xs">
+                <div>
+                  <p className="font-semibold">Admin</p>
+                  <p>Username: admin1</p>
+                  <p>Password: admin123</p>
                 </div>
-                <div className="grid gap-2 mt-4">
-                  <Label htmlFor="resident-password">
-                    <Key className="mr-2 h-4 w-4 inline-block align-middle" />
-                    Password
-                  </Label>
-                  <Input 
-                    id="resident-password" 
-                    placeholder="Enter your password" 
-                    type="password"
-                    value={residentPassword}
-                    onChange={(e) => setResidentPassword(e.target.value)}
-                    disabled={loading}
-                  />
+                <div>
+                  <p className="font-semibold">Staff</p>
+                  <p>Username: staff1</p>
+                  <p>Password: staff123</p>
                 </div>
-                <Button className="w-full mt-4" disabled={loading}>
-                  {loading ? (
-                    <>
-                      <AlertCircle className="mr-2 h-4 w-4 animate-spin" />
-                      Logging in...
-                    </>
-                  ) : (
-                    "Login as Resident"
-                  )}
-                </Button>
-              </form>
-            </TabsContent>
-            
-            {/* Staff Login Tab */}
-            <TabsContent value="staff" className="space-y-4">
-              <form onSubmit={handleStaffLogin}>
-                <div className="grid gap-2">
-                  <Label htmlFor="staff-username">
-                    <UserCircle className="mr-2 h-4 w-4 inline-block align-middle" />
-                    Staff ID
-                  </Label>
-                  <Input 
-                    id="staff-username" 
-                    placeholder="Enter your staff ID" 
-                    type="text"
-                    value={staffUsername}
-                    onChange={(e) => setStaffUsername(e.target.value)}
-                    disabled={loading}
-                  />
+                <div>
+                  <p className="font-semibold">Resident</p>
+                  <p>Username: resident1</p>
+                  <p>Password: resident123</p>
                 </div>
-                <div className="grid gap-2 mt-4">
-                  <Label htmlFor="staff-password">
-                    <Key className="mr-2 h-4 w-4 inline-block align-middle" />
-                    Password
-                  </Label>
-                  <Input 
-                    id="staff-password" 
-                    placeholder="Enter your password" 
-                    type="password"
-                    value={staffPassword}
-                    onChange={(e) => setStaffPassword(e.target.value)}
-                    disabled={loading}
-                  />
-                </div>
-                <Button className="w-full mt-4" disabled={loading}>
-                  {loading ? (
-                    <>
-                      <AlertCircle className="mr-2 h-4 w-4 animate-spin" />
-                      Logging in...
-                    </>
-                  ) : (
-                    "Login as Staff"
-                  )}
-                </Button>
-              </form>
-            </TabsContent>
-            
-            {/* Admin Login Tab */}
-            <TabsContent value="admin" className="space-y-4">
-              <form onSubmit={handleAdminLogin}>
-                <div className="grid gap-2">
-                  <Label htmlFor="admin-username">
-                    <UserCircle className="mr-2 h-4 w-4 inline-block align-middle" />
-                    Admin Username
-                  </Label>
-                  <Input 
-                    id="admin-username" 
-                    placeholder="Enter admin username" 
-                    type="text"
-                    value={adminUsername}
-                    onChange={(e) => setAdminUsername(e.target.value)}
-                    disabled={loading}
-                  />
-                </div>
-                <div className="grid gap-2 mt-4">
-                  <Label htmlFor="admin-password">
-                    <Key className="mr-2 h-4 w-4 inline-block align-middle" />
-                    Password
-                  </Label>
-                  <Input 
-                    id="admin-password" 
-                    placeholder="Enter your password" 
-                    type="password"
-                    value={adminPassword}
-                    onChange={(e) => setAdminPassword(e.target.value)}
-                    disabled={loading}
-                  />
-                </div>
-                <Button className="w-full mt-4" disabled={loading}>
-                  {loading ? (
-                    <>
-                      <AlertCircle className="mr-2 h-4 w-4 animate-spin" />
-                      Logging in...
-                    </>
-                  ) : (
-                    "Login as Admin"
-                  )}
-                </Button>
-              </form>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-        <CardFooter className="flex justify-center">
-          <p className="text-sm text-muted-foreground">
-            Contact admin for help with login credentials
-          </p>
-        </CardFooter>
-      </Card>
+              </div>
+            </div>
+          </CardFooter>
+        </Card>
+      </div>
     </div>
   );
 };
