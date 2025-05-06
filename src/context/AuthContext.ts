@@ -6,7 +6,7 @@ export interface UserInfo {
   name?: string;
   email?: string;
   contact?: string;
-  apartment?: string;
+  apartment?: string; 
   status?: string;
   resident_id?: number; // Adding this to store Supabase resident_id
 }

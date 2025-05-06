@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import AuthContext from "@/context/AuthContext";
 
 interface BookAmenityDialogProps {
   open: boolean;
@@ -23,7 +24,8 @@ interface BookAmenityDialogProps {
 }
 
 export function BookAmenityDialog({ open, onOpenChange, onAdd, amenityId }: BookAmenityDialogProps) {
-  const [residentId, setResidentId] = useState<number | null>(null);
+  const { currentUser } = useContext(AuthContext);
+  const [residentId, setResidentId] = useState<number | null>(currentUser?.resident_id || null);
   const [amenity, setAmenity] = useState<number | null>(amenityId || null);
   const [purpose, setPurpose] = useState("");
   const [date, setDate] = useState<Date | undefined>(new Date());
@@ -32,29 +34,46 @@ export function BookAmenityDialog({ open, onOpenChange, onAdd, amenityId }: Book
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  const { data: residents } = useQuery({
+  const { data: residents, isLoading: isLoadingResidents } = useQuery({
     queryKey: ["residents"],
     queryFn: async () => {
-      const { data, error } = await supabase.from('residents').select('id, name, apartment');
-      if (error) {
-        console.error('Error fetching residents:', error);
+      try {
+        const { data, error } = await supabase.from('resident').select('resident_id, name, apartment_id');
+        if (error) {
+          console.error('Error fetching residents:', error);
+          return [];
+        }
+        return data || [];
+      } catch (err) {
+        console.error('Error in resident query:', err);
         return [];
       }
-      return data;
     }
   });
 
-  const { data: amenities } = useQuery({
+  const { data: amenities, isLoading: isLoadingAmenities } = useQuery({
     queryKey: ["amenities"],
     queryFn: async () => {
-      const { data, error } = await supabase.from('amenities').select('id, name');
-      if (error) {
-        console.error('Error fetching amenities:', error);
+      try {
+        const { data, error } = await supabase.from('amenity').select('amenity_id, amenity_name');
+        if (error) {
+          console.error('Error fetching amenities:', error);
+          return [];
+        }
+        return data || [];
+      } catch (err) {
+        console.error('Error in amenities query:', err);
         return [];
       }
-      return data;
     }
   });
+
+  // Set current user as default resident when logged in
+  useEffect(() => {
+    if (currentUser?.resident_id) {
+      setResidentId(currentUser.resident_id);
+    }
+  }, [currentUser]);
 
   const handleSubmit = async () => {
     if (!amenity || !date || !timeStart || !timeEnd || !purpose || !residentId) {
@@ -85,9 +104,9 @@ export function BookAmenityDialog({ open, onOpenChange, onAdd, amenityId }: Book
 
       // Update amenity status to 'Booked'
       await supabase
-        .from('amenities')
-        .update({ status: 'Booked' })
-        .eq('id', amenity);
+        .from('amenity')
+        .update({ availability_status: 'Booked' })
+        .eq('amenity_id', amenity);
 
       toast({
         title: "Booking confirmed",
@@ -121,16 +140,26 @@ export function BookAmenityDialog({ open, onOpenChange, onAdd, amenityId }: Book
             <Label htmlFor="resident" className="text-right">
               Resident
             </Label>
-            <Select onValueChange={(value) => setResidentId(Number(value))}>
+            <Select 
+              onValueChange={(value) => setResidentId(Number(value))}
+              value={residentId ? residentId.toString() : undefined}
+              disabled={!!currentUser?.resident_id}
+            >
               <SelectTrigger className="col-span-3">
                 <SelectValue placeholder="Select a resident" />
               </SelectTrigger>
               <SelectContent>
-                {residents?.map((resident) => (
-                  <SelectItem key={resident.id} value={resident.id.toString()}>
-                    {resident.name} ({resident.apartment})
-                  </SelectItem>
-                ))}
+                {isLoadingResidents ? (
+                  <SelectItem value="loading" disabled>Loading...</SelectItem>
+                ) : residents && residents.length > 0 ? (
+                  residents.map((resident) => (
+                    <SelectItem key={resident.resident_id} value={resident.resident_id.toString()}>
+                      {resident.name || 'Unknown'} ({resident.apartment_id || 'N/A'})
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="none" disabled>No residents found</SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -140,17 +169,23 @@ export function BookAmenityDialog({ open, onOpenChange, onAdd, amenityId }: Book
             </Label>
             <Select 
               onValueChange={(value) => setAmenity(Number(value))}
-              defaultValue={amenityId ? String(amenityId) : undefined}
+              defaultValue={amenityId ? amenityId.toString() : undefined}
             >
               <SelectTrigger className="col-span-3">
                 <SelectValue placeholder="Select an amenity" />
               </SelectTrigger>
               <SelectContent>
-                {amenities?.map((item) => (
-                  <SelectItem key={item.id} value={item.id.toString()}>
-                    {item.name}
-                  </SelectItem>
-                ))}
+                {isLoadingAmenities ? (
+                  <SelectItem value="loading" disabled>Loading...</SelectItem>
+                ) : amenities && amenities.length > 0 ? (
+                  amenities.map((item) => (
+                    <SelectItem key={item.amenity_id} value={item.amenity_id.toString()}>
+                      {item.amenity_name || 'Unknown Amenity'}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="none" disabled>No amenities found</SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>
