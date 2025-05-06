@@ -838,3 +838,58 @@ export const mockWings: Wing[] = [
     apartments: 48
   }
 ];
+
+// Add mock payment residents data
+export const mockPaymentResidents = [
+  { id: 1, resident_id: 1, name: "John Doe", apartment: "A-101" },
+  { id: 2, resident_id: 2, name: "Jane Smith", apartment: "B-202" },
+  { id: 3, resident_id: 3, name: "Robert Johnson", apartment: "C-303" },
+  { id: 4, resident_id: 4, name: "Michael Brown", apartment: "D-404" },
+  { id: 5, resident_id: 5, name: "Emily Wong", apartment: "A-105" }
+];
+
+// Add mock payments data
+export const mockPayments: Payment[] = [
+  {
+    transaction_id: 1,
+    id: 1,
+    resident_id: 1,
+    amount: 2500,
+    transaction_date: '2025-05-01',
+    date: '2025-05-01',
+    payment_method: 'UPI',
+    banking_status: 'Paid',
+    status: 'Paid',
+    purpose: 'Maintenance Fee - May 2025',
+    description: 'Maintenance Fee - May 2025',
+    currency: 'INR'
+  },
+  {
+    transaction_id: 2,
+    id: 2,
+    resident_id: 2,
+    amount: 2500,
+    transaction_date: '2025-04-28',
+    date: '2025-04-28',
+    payment_method: 'Bank Transfer',
+    banking_status: 'Paid',
+    status: 'Paid',
+    purpose: 'Maintenance Fee - April 2025',
+    description: 'Maintenance Fee - April 2025',
+    currency: 'INR'
+  },
+  {
+    transaction_id: 3,
+    id: 3,
+    resident_id: 3,
+    amount: 2500,
+    transaction_date: '2025-05-02',
+    date: '2025-05-02',
+    payment_method: 'Cash',
+    banking_status: 'Pending',
+    status: 'Pending',
+    purpose: 'Maintenance Fee - May 2025',
+    description: 'Maintenance Fee - May 2025',
+    currency: 'INR'
+  }
+];

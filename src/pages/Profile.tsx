@@ -1,11 +1,41 @@
 import React, { useState, useEffect, useContext } from 'react';
+import { format } from 'date-fns';
+import { Link } from 'react-router-dom';
 import Layout from '@/components/layout/layout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Staff, Resident, User, mockStaff, mockResidents, mockUsers } from '@/types/database';
 import AuthContext from '@/context/AuthContext';
-import { Loader2, Mail, Phone, Calendar, Home, User as UserIcon, Shield } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import {
+  Loader2,
+  Mail,
+  Phone,
+  Calendar,
+  Home,
+  User as UserIcon,
+  Shield,
+  Key,
+  Settings,
+  Lock,
+  Bed,
+  CreditCard,
+  MessageSquare,
+  FileText,
+  UserRound,
+  BadgeIndianRupee,
+  BellRing,
+  CalendarDays
+} from 'lucide-react';
 
 const Profile: React.FC = () => {
   const { userRole, currentUser } = useContext(AuthContext);
@@ -83,7 +113,7 @@ const Profile: React.FC = () => {
               name: data.name,
               email: currentUser.email,
               contact: data.contact_number,
-              position: data.position || data.role,
+              position: data.role || data.position, // Map role to position
               status: 'Active',
             };
             
@@ -268,7 +298,7 @@ const Profile: React.FC = () => {
       case 'Payment': return <CreditCard className="h-5 w-5 text-green-500" />;
       case 'Complaint': return <MessageSquare className="h-5 w-5 text-red-500" />;
       case 'Notice': return <FileText className="h-5 w-5 text-purple-500" />;
-      case 'Visitor': return <User className="h-5 w-5 text-orange-500" />;
+      case 'Visitor': return <UserIcon className="h-5 w-5 text-orange-500" />;
       default: return <Calendar className="h-5 w-5 text-gray-500" />;
     }
   };

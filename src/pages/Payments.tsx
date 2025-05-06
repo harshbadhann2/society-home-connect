@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Layout from '@/components/layout/layout';
 import { Button } from '@/components/ui/button';
@@ -22,7 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { RecordPaymentDialog } from '@/components/dialogs/RecordPaymentDialog';
-import { Payment, mockPaymentResidents, mockPayments } from '@/types/database';
+import { Payment, mockPayments, mockPaymentResidents } from '@/types/database';
 
 // If mockPaymentResidents doesn't exist in database.ts, add it here
 const localMockPaymentResidents = [

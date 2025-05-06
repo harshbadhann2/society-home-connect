@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import Layout from '@/components/layout/layout';
 import { Button } from '@/components/ui/button';
@@ -49,6 +50,7 @@ const Properties: React.FC = () => {
     queryKey: ['apartments'],
     queryFn: async () => {
       try {
+        // Change from 'apartment' to match the actual table name in Supabase
         const { data, error } = await supabase.from('apartment').select('*');
         
         if (error) {
@@ -86,10 +88,10 @@ const Properties: React.FC = () => {
 
   // Count different apartment types
   const countByType = {
-    '1 BHK': apartments?.filter(apt => apt.type === '1 BHK').length || 0,
-    '2 BHK': apartments?.filter(apt => apt.type === '2 BHK').length || 0,
-    '3 BHK': apartments?.filter(apt => apt.type === '3 BHK').length || 0,
-    'Other': apartments?.filter(apt => !['1 BHK', '2 BHK', '3 BHK'].includes(apt.type || '')).length || 0,
+    '1 BHK': apartments?.filter(apt => (apt.type || '2 BHK') === '1 BHK').length || 0,
+    '2 BHK': apartments?.filter(apt => (apt.type || '2 BHK') === '2 BHK').length || 0,
+    '3 BHK': apartments?.filter(apt => (apt.type || '2 BHK') === '3 BHK').length || 0,
+    'Other': apartments?.filter(apt => !['1 BHK', '2 BHK', '3 BHK'].includes(apt.type || '2 BHK')).length || 0,
   };
 
   return (
