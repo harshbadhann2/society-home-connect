@@ -25,9 +25,7 @@ import { Amenity, mockAmenities } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
 import { BookAmenityDialog } from '@/components/dialogs/BookAmenityDialog';
 
-const getStatusColor = (status: string | null | undefined) => {
-  if (!status) return 'bg-gray-100 text-gray-800 border-gray-200';
-  
+const getStatusColor = (status: string) => {
   switch (status.toLowerCase()) {
     case 'available':
       return 'bg-green-100 text-green-800 border-green-200';
@@ -44,38 +42,29 @@ const getStatusColor = (status: string | null | undefined) => {
 const mockBookings = [
   {
     id: 1,
-    amenity_id: 1, // Added to match structure expected in formatBookings
-    resident_id: 1, // Added to match structure expected in formatBookings
     facility: 'Community Hall',
     bookedBy: 'John Doe',
     apartment: 'A-101',
     date: '2025-05-10',
     time: '6:00 PM - 9:00 PM',
-    time_slot: '6:00 PM - 9:00 PM', // Added to match structure expected in formatBookings
     purpose: 'Birthday Party',
   },
   {
     id: 2,
-    amenity_id: 4, // Added to match structure expected in formatBookings
-    resident_id: 3, // Added to match structure expected in formatBookings
     facility: 'Tennis Court',
     bookedBy: 'Robert Johnson',
     apartment: 'C-303',
     date: '2025-05-05',
     time: '7:00 AM - 9:00 AM',
-    time_slot: '7:00 AM - 9:00 AM', // Added to match structure expected in formatBookings
     purpose: 'Practice Session',
   },
   {
     id: 3,
-    amenity_id: 1, // Added to match structure expected in formatBookings
-    resident_id: 5, // Added to match structure expected in formatBookings
     facility: 'Community Hall',
     bookedBy: 'Society Committee',
     apartment: 'N/A',
     date: '2025-05-15',
     time: '5:00 PM - 8:00 PM',
-    time_slot: '5:00 PM - 8:00 PM', // Added to match structure expected in formatBookings
     purpose: 'Annual General Meeting',
   },
 ];
@@ -98,8 +87,7 @@ const Amenities: React.FC = () => {
     queryKey: ['amenities'],
     queryFn: async () => {
       try {
-        // Updated from "amenities" to "amenity" to match the correct table name
-        const { data, error } = await supabase.from('amenity').select('*');
+        const { data, error } = await supabase.from('amenities').select('*');
         
         if (error) {
           console.info('Supabase error:', error);
@@ -107,15 +95,7 @@ const Amenities: React.FC = () => {
           return mockAmenities;
         }
         
-        // Map the returned data to match our expected format
-        return data.map((item: any) => ({
-          id: item.amenity_id,
-          name: item.amenity_name,
-          location: 'Main Building', // Default location if not provided
-          capacity: 20, // Default capacity if not provided
-          opening_hours: item.operating_hours || '9 AM - 9 PM',
-          status: item.availability_status || 'Available'
-        })) as Amenity[];
+        return data as Amenity[];
       } catch (err) {
         console.error('Error fetching amenities:', err);
         return mockAmenities;
@@ -127,16 +107,14 @@ const Amenities: React.FC = () => {
     queryKey: ['bookings'],
     queryFn: async () => {
       try {
-        // Using delivery_records as a temporary placeholder since there's no bookings table
-        const { data, error } = await supabase.from('delivery_records').select('*');
+        const { data, error } = await supabase.from('bookings').select('*');
         
         if (error) {
           console.info('Supabase error:', error);
           return mockBookings;
         }
         
-        // For now, return mock bookings since we don't have a proper bookings table
-        return mockBookings;
+        return data as Booking[];
       } catch (err) {
         console.error('Error fetching bookings:', err);
         return mockBookings;
@@ -148,7 +126,7 @@ const Amenities: React.FC = () => {
     queryKey: ['residents'],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase.from('resident').select('resident_id, name, apartment_id');
+        const { data, error } = await supabase.from('residents').select('id, name, apartment');
         
         if (error) {
           console.error('Supabase error fetching residents:', error);
@@ -165,8 +143,8 @@ const Amenities: React.FC = () => {
 
   const getResidentInfo = (residentId: number) => {
     if (residents && residents.length > 0) {
-      const resident = residents.find((r: any) => r.resident_id === residentId);
-      return resident ? { name: resident.name, apartment: resident.apartment_id } : { name: 'Unknown', apartment: 'N/A' };
+      const resident = residents.find((r: any) => r.id === residentId);
+      return resident ? { name: resident.name, apartment: resident.apartment } : { name: 'Unknown', apartment: 'N/A' };
     }
     return { name: 'Unknown', apartment: 'N/A' };
   };
@@ -180,12 +158,6 @@ const Amenities: React.FC = () => {
   };
 
   const formatBookings = bookings?.map(booking => {
-    // Check if booking is already in the expected format or needs conversion
-    if (booking.facility && booking.bookedBy) {
-      return booking;
-    }
-    
-    // For data coming from the database, convert it
     const residentInfo = getResidentInfo(booking.resident_id);
     return {
       id: booking.id,
@@ -293,11 +265,11 @@ const Amenities: React.FC = () => {
                         <TableCell className="hidden md:table-cell">{amenity.opening_hours}</TableCell>
                         <TableCell>
                           <Badge variant="outline" className={getStatusColor(amenity.status)}>
-                            {amenity.status || 'Unknown'}
+                            {amenity.status}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          {amenity.status && amenity.status.toLowerCase() === 'available' ? (
+                          {amenity.status.toLowerCase() === 'available' ? (
                             <Button 
                               variant="outline" 
                               size="sm"
@@ -309,9 +281,9 @@ const Amenities: React.FC = () => {
                             <Button 
                               variant="outline" 
                               size="sm"
-                              disabled={!amenity.status || amenity.status.toLowerCase() !== 'booked'}
+                              disabled={amenity.status.toLowerCase() !== 'booked'}
                             >
-                              {amenity.status && amenity.status.toLowerCase() === 'booked' ? 'View Details' : 'Unavailable'}
+                              {amenity.status.toLowerCase() === 'booked' ? 'View Details' : 'Unavailable'}
                             </Button>
                           )}
                         </TableCell>

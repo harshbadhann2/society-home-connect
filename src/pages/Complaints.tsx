@@ -101,27 +101,14 @@ const Complaints: React.FC = () => {
     queryKey: ['complaints'],
     queryFn: async () => {
       try {
-        // Fix: Change from "complaints" to "complaint" to match database schema
-        const { data, error } = await supabase.from('complaint').select('*').order('date_raised', { ascending: false });
+        const { data, error } = await supabase.from('complaints').select('*').order('date_filed', { ascending: false });
         
         if (error) {
           console.error('Supabase error:', error);
           return mockComplaints;
         }
         
-        // Transform the data to match our Complaint interface
-        const transformedData = data ? data.map(item => ({
-          id: item.complaint_id,
-          resident_id: item.resident_id || 0,
-          subject: item.subject || '',
-          description: item.complaint_text || '',
-          category: 'General', // Default since it's not in the DB schema
-          status: item.complaint_status || 'Pending',
-          date_filed: item.date_raised || new Date().toISOString().split('T')[0],
-          assigned_to: ''
-        })) : [];
-        
-        return transformedData as Complaint[];
+        return (data as Complaint[]) || mockComplaints;
       } catch (err) {
         console.error('Error fetching complaints:', err);
         return mockComplaints;
@@ -130,11 +117,10 @@ const Complaints: React.FC = () => {
   });
 
   const { data: residents } = useQuery({
-    queryKey: ['complaintsResidents'],
+    queryKey: ['residents'],
     queryFn: async () => {
       try {
-        // Fix: Change from "residents" to "resident" to match database schema
-        const { data, error } = await supabase.from('resident').select('resident_id, name');
+        const { data, error } = await supabase.from('residents').select('id, name');
         
         if (error) {
           console.error('Supabase error fetching residents:', error);
@@ -151,7 +137,7 @@ const Complaints: React.FC = () => {
 
   const getResidentName = (residentId: number) => {
     if (residents && residents.length > 0) {
-      const resident = residents.find((r: any) => r.resident_id === residentId);
+      const resident = residents.find((r: any) => r.id === residentId);
       return resident ? resident.name : 'Unknown';
     }
     
@@ -161,15 +147,15 @@ const Complaints: React.FC = () => {
 
   const handleStatusChange = async (id: number, newStatus: string) => {
     try {
-      // Fix type instantiation issue with explicit type annotation
-      const updates: { complaint_status: string } = {
-        complaint_status: newStatus,
+      const updates = {
+        status: newStatus,
+        ...(newStatus === 'Resolved' ? { date_resolved: new Date().toISOString() } : {})
       };
       
       const { error } = await supabase
-        .from('complaint')
+        .from('complaints')
         .update(updates)
-        .eq('complaint_id', id);
+        .eq('id', id);
         
       if (error) throw error;
       

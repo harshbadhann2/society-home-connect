@@ -38,7 +38,7 @@ export function FileComplaintDialog({ open, onOpenChange, onAdd }: FileComplaint
     setIsSubmitting(true);
     try {
       // First check if the table exists
-      const { error: checkError } = await supabase.from('complaint').select('count').limit(1);
+      const { error: checkError } = await supabase.from('complaints').select('count').limit(1);
       
       if (checkError && checkError.message.includes('does not exist')) {
         // Table doesn't exist, try to create it
@@ -55,13 +55,13 @@ export function FileComplaintDialog({ open, onOpenChange, onAdd }: FileComplaint
       
       // Table exists, proceed with insert
       const { error } = await supabase
-        .from('complaint')
+        .from('complaints')
         .insert({
           subject,
-          complaint_text: description,
-          resident_id: 1, // Default resident_id
-          complaint_status: 'Pending',
-          date_raised: new Date().toISOString().split('T')[0], // Format as YYYY-MM-DD
+          description,
+          category,
+          status: 'Pending',
+          date_filed: new Date().toISOString(),
         });
 
       if (error) throw error;

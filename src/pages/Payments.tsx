@@ -110,27 +110,14 @@ const Payments: React.FC = () => {
     queryKey: ['payments'],
     queryFn: async () => {
       try {
-        // Use 'banking' table which exists in the Supabase schema
-        const { data, error } = await supabase.from('banking').select('*').order('transaction_date', { ascending: false });
+        const { data, error } = await supabase.from('payments').select('*').order('date', { ascending: false });
         
         if (error) {
           console.error('Supabase error:', error);
           return mockPayments;
         }
         
-        // Transform banking data to match our Payment interface
-        const transformedData = data.map(item => ({
-          id: item.transaction_id,
-          description: item.purpose || 'Payment',
-          resident_id: item.resident_id || 0,
-          amount: item.amount || 0,
-          date: item.transaction_date || new Date().toISOString(),
-          status: item.banking_status || 'Unknown',
-          payment_method: item.payment_method || 'Cash',
-          currency: 'INR'
-        }));
-        
-        return transformedData as Payment[];
+        return (data as Payment[]) || mockPayments;
       } catch (err) {
         console.error('Error fetching payments:', err);
         return mockPayments;
@@ -139,21 +126,17 @@ const Payments: React.FC = () => {
   });
 
   const { data: residents } = useQuery({
-    queryKey: ['payments-residents'],
+    queryKey: ['residents'],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase.from('resident').select('resident_id, name, apartment_id');
+        const { data, error } = await supabase.from('residents').select('id, name, apartment');
         
         if (error) {
           console.error('Supabase error fetching residents:', error);
           return [];
         }
         
-        return data.map(resident => ({
-          id: resident.resident_id,
-          name: resident.name,
-          apartment: `A-${resident.apartment_id || '000'}`
-        }));
+        return data;
       } catch (err) {
         console.error('Error fetching residents:', err);
         return [];

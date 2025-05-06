@@ -1,3 +1,4 @@
+
 import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -31,12 +32,7 @@ const LoginPage: React.FC = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
-  const auth = useContext(AuthContext);
-  
-  // Type-safe setters
-  const setIsAuthenticated = auth.setIsAuthenticated;
-  const setUserRole = auth.setUserRole;
-  const setCurrentUser = auth.setCurrentUser;
+  const { setIsAuthenticated, setUserRole } = useContext(AuthContext);
 
   useEffect(() => {
     // Check if there's a default tab in the location state
@@ -56,7 +52,7 @@ const LoginPage: React.FC = () => {
         .from('users')
         .select('*')
         .eq('email', email)
-        .eq('password_hash', password) // NOTE: In a real application, never store passwords in plaintext
+        .eq('password', password) // NOTE: In a real application, never store passwords in plaintext
         .eq('role', 'resident')
         .single();
 
@@ -80,45 +76,22 @@ const LoginPage: React.FC = () => {
         // Use mock user
         setIsAuthenticated(true);
         setUserRole('resident');
-        setCurrentUser({
-          userId: 1,
-          email: user.email,
-          name: user.email.split('@')[0],
-          role: 'resident'
-        });
-        
         toast({
           title: "Resident Login Successful",
           description: "Welcome to Nirvaan Heights!",
         });
-        
-        // Use setTimeout to allow React to finish its updates before navigation
-        setTimeout(() => {
-          navigate('/');
-        }, 100);
-        
+        navigate('/');
         return;
       }
 
       // Supabase authentication successful
       setIsAuthenticated(true);
       setUserRole('resident');
-      setCurrentUser({
-        userId: data.user_id,
-        email: data.email,
-        name: data.username,
-        role: 'resident'
-      });
-      
       toast({
         title: "Resident Login Successful",
         description: "Welcome to Nirvaan Heights!",
       });
-      
-      // Use setTimeout to allow React to finish its updates before navigation
-      setTimeout(() => {
-        navigate('/');
-      }, 100);
+      navigate('/');
 
     } catch (err) {
       console.error('Login error:', err);
@@ -142,7 +115,7 @@ const LoginPage: React.FC = () => {
         .from('users')
         .select('*')
         .eq('email', email)
-        .eq('password_hash', password)
+        .eq('password', password) // NOTE: In a real application, never store passwords in plaintext
         .eq('role', 'staff')
         .single();
 
@@ -166,45 +139,22 @@ const LoginPage: React.FC = () => {
         // Use mock user
         setIsAuthenticated(true);
         setUserRole('staff');
-        setCurrentUser({
-          userId: 1,
-          email: user.email,
-          name: user.email.split('@')[0],
-          role: 'staff'
-        });
-        
         toast({
           title: "Staff Login Successful",
           description: "Welcome back, staff member!",
         });
-        
-        // Use setTimeout to allow React to finish its updates before navigation
-        setTimeout(() => {
-          navigate('/');
-        }, 100);
-        
+        navigate('/');
         return;
       }
 
       // Supabase authentication successful
       setIsAuthenticated(true);
       setUserRole('staff');
-      setCurrentUser({
-        userId: data.user_id,
-        email: data.email,
-        name: data.username,
-        role: 'staff'
-      });
-      
       toast({
         title: "Staff Login Successful",
         description: "Welcome back, staff member!",
       });
-      
-      // Use setTimeout to allow React to finish its updates before navigation
-      setTimeout(() => {
-        navigate('/');
-      }, 100);
+      navigate('/');
 
     } catch (err) {
       console.error('Login error:', err);
@@ -228,7 +178,7 @@ const LoginPage: React.FC = () => {
         .from('users')
         .select('*')
         .eq('email', email)
-        .eq('password_hash', password)
+        .eq('password', password) // NOTE: In a real application, never store passwords in plaintext
         .eq('role', 'admin')
         .single();
 
@@ -252,45 +202,22 @@ const LoginPage: React.FC = () => {
         // Use mock user
         setIsAuthenticated(true);
         setUserRole('admin');
-        setCurrentUser({
-          userId: 1,
-          email: user.email,
-          name: user.email.split('@')[0],
-          role: 'admin'
-        });
-        
         toast({
           title: "Admin Login Successful",
           description: "Welcome back, administrator!",
         });
-        
-        // Use setTimeout to allow React to finish its updates before navigation
-        setTimeout(() => {
-          navigate('/');
-        }, 100);
-        
+        navigate('/');
         return;
       }
 
       // Supabase authentication successful
       setIsAuthenticated(true);
       setUserRole('admin');
-      setCurrentUser({
-        userId: data.user_id,
-        email: data.email,
-        name: data.username,
-        role: 'admin'
-      });
-      
       toast({
         title: "Admin Login Successful",
         description: "Welcome back, administrator!",
       });
-      
-      // Use setTimeout to allow React to finish its updates before navigation
-      setTimeout(() => {
-        navigate('/');
-      }, 100);
+      navigate('/');
 
     } catch (err) {
       console.error('Login error:', err);

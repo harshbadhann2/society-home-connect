@@ -63,7 +63,7 @@ const Wings: React.FC = () => {
     queryKey: ['wings'],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase.from('wing').select('*');
+        const { data, error } = await supabase.from('wings').select('*');
         
         if (error) {
           console.info('Supabase error:', error);
@@ -71,15 +71,7 @@ const Wings: React.FC = () => {
           return mockWings;
         }
         
-        // Map the database schema fields to our expected format
-        return data.map(wing => ({
-          id: wing.wing_id,
-          name: wing.wing_name || 'Unknown',
-          floors: wing.total_floors || 0,
-          apartments: wing.total_apartments || 0,
-          maintenance_day: 'Monday', // Default value since it's not in the schema
-          status: 'Active' // Default value since it's not in the schema
-        })) || mockWings;
+        return data || mockWings;
       } catch (err) {
         console.error('Error fetching wings:', err);
         return mockWings;

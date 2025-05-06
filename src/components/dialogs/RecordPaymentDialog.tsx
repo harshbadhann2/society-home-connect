@@ -27,7 +27,7 @@ export function RecordPaymentDialog({ open, onOpenChange, onAdd }: RecordPayment
   const { data: residents } = useQuery({
     queryKey: ["residents"],
     queryFn: async () => {
-      const { data, error } = await supabase.from('resident').select('resident_id, name, apartment_id');
+      const { data, error } = await supabase.from('residents').select('id, name, apartment');
       if (error) {
         console.error('Error fetching residents:', error);
         return [];
@@ -59,14 +59,15 @@ export function RecordPaymentDialog({ open, onOpenChange, onAdd }: RecordPayment
     setIsSubmitting(true);
     try {
       const { error } = await supabase
-        .from('banking') // Changed from 'payments' to 'banking'
+        .from('payments')
         .insert({
           resident_id: residentId,
-          purpose: description, // Changed from 'description' to 'purpose'
+          description,
           amount: amountValue,
+          currency: 'INR',
+          date: new Date().toISOString(),
           payment_method: paymentMethod,
-          transaction_date: new Date().toISOString(),
-          banking_status: 'Paid', // Changed from 'status' to 'banking_status'
+          status: 'Paid',
         });
 
       if (error) throw error;
@@ -109,8 +110,8 @@ export function RecordPaymentDialog({ open, onOpenChange, onAdd }: RecordPayment
               </SelectTrigger>
               <SelectContent>
                 {residents?.map((resident) => (
-                  <SelectItem key={resident.resident_id} value={resident.resident_id.toString()}>
-                    {resident.name} ({resident.apartment_id})
+                  <SelectItem key={resident.id} value={resident.id.toString()}>
+                    {resident.name} ({resident.apartment})
                   </SelectItem>
                 ))}
               </SelectContent>

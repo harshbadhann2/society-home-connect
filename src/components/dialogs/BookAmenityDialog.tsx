@@ -35,7 +35,7 @@ export function BookAmenityDialog({ open, onOpenChange, onAdd, amenityId }: Book
   const { data: residents } = useQuery({
     queryKey: ["residents"],
     queryFn: async () => {
-      const { data, error } = await supabase.from('resident').select('resident_id, name, apartment_id');
+      const { data, error } = await supabase.from('residents').select('id, name, apartment');
       if (error) {
         console.error('Error fetching residents:', error);
         return [];
@@ -47,7 +47,7 @@ export function BookAmenityDialog({ open, onOpenChange, onAdd, amenityId }: Book
   const { data: amenities } = useQuery({
     queryKey: ["amenities"],
     queryFn: async () => {
-      const { data, error } = await supabase.from('amenity').select('amenity_id, amenity_name');
+      const { data, error } = await supabase.from('amenities').select('id, name');
       if (error) {
         console.error('Error fetching amenities:', error);
         return [];
@@ -68,23 +68,31 @@ export function BookAmenityDialog({ open, onOpenChange, onAdd, amenityId }: Book
 
     setIsSubmitting(true);
     try {
-      // Since there's no 'bookings' table in the current schema, let's use a placeholder
-      // In production, you would need to create a bookings table or use an appropriate table
+      const bookingDate = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+      const timeSlot = `${timeStart} - ${timeEnd}`;
+
+      const { error } = await supabase
+        .from('bookings')
+        .insert({
+          amenity_id: amenity,
+          resident_id: residentId,
+          date: bookingDate,
+          time_slot: timeSlot,
+          purpose,
+        });
+
+      if (error) throw error;
+
+      // Update amenity status to 'Booked'
+      await supabase
+        .from('amenities')
+        .update({ status: 'Booked' })
+        .eq('id', amenity);
+
       toast({
         title: "Booking confirmed",
         description: "The amenity has been successfully booked."
       });
-      
-      // Update amenity status to 'Booked'
-      const { error } = await supabase
-        .from('amenity')
-        .update({ availability_status: 'Booked' })
-        .eq('amenity_id', amenity);
-      
-      if (error) {
-        console.error('Error updating amenity status:', error);
-      }
-
       onOpenChange(false);
       if (onAdd) onAdd();
     } catch (error) {
@@ -119,8 +127,8 @@ export function BookAmenityDialog({ open, onOpenChange, onAdd, amenityId }: Book
               </SelectTrigger>
               <SelectContent>
                 {residents?.map((resident) => (
-                  <SelectItem key={resident.resident_id} value={resident.resident_id.toString()}>
-                    {resident.name} (Apt #{resident.apartment_id})
+                  <SelectItem key={resident.id} value={resident.id.toString()}>
+                    {resident.name} ({resident.apartment})
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -139,8 +147,8 @@ export function BookAmenityDialog({ open, onOpenChange, onAdd, amenityId }: Book
               </SelectTrigger>
               <SelectContent>
                 {amenities?.map((item) => (
-                  <SelectItem key={item.amenity_id} value={item.amenity_id.toString()}>
-                    {item.amenity_name}
+                  <SelectItem key={item.id} value={item.id.toString()}>
+                    {item.name}
                   </SelectItem>
                 ))}
               </SelectContent>

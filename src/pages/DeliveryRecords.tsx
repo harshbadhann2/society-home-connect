@@ -57,24 +57,14 @@ const DeliveryRecords: React.FC = () => {
     queryKey: ['deliveries'],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase.from('delivery_records').select('*');
+        const { data, error } = await supabase.from('deliveries').select('*');
         
         if (error) {
           console.error('Supabase error:', error);
           return mockDeliveries;
         }
         
-        // Transform the data to match our Delivery interface
-        const transformedData = data ? data.map(item => ({
-          id: item.delivery_id || 0,
-          package_info: item.courier_company_name || '',
-          resident_id: item.resident_id || 0,
-          received_date: item.delivery_date || new Date().toISOString(),
-          status: item.delivery_status || 'Pending',
-          courier_name: item.courier_company_name || '',
-        })) : [];
-        
-        return transformedData as Delivery[];
+        return (data || []) as Delivery[];
       } catch (err) {
         console.error('Error fetching deliveries:', err);
         return mockDeliveries;
@@ -86,7 +76,7 @@ const DeliveryRecords: React.FC = () => {
     queryKey: ['residents'],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase.from('resident').select('resident_id, name, apartment_id');
+        const { data, error } = await supabase.from('residents').select('id, name, apartment');
         
         if (error) {
           console.error('Supabase error fetching residents:', error);
@@ -103,8 +93,8 @@ const DeliveryRecords: React.FC = () => {
 
   const getResidentNameAndApartment = (residentId: number) => {
     if (residents && residents.length > 0) {
-      const resident = residents.find((r: any) => r.resident_id === residentId);
-      return resident ? `${resident.name} (${resident.apartment_id})` : 'Unknown';
+      const resident = residents.find((r: any) => r.id === residentId);
+      return resident ? `${resident.name} (${resident.apartment})` : 'Unknown';
     }
     return 'Unknown';
   };
@@ -125,12 +115,12 @@ const DeliveryRecords: React.FC = () => {
   const handleStatusUpdate = async (id: number, status: string) => {
     try {
       const { error } = await supabase
-        .from('delivery_records')
+        .from('deliveries')
         .update({ 
-          delivery_status: status,
-          ...(status === 'Delivered' ? { delivery_date: new Date().toISOString() } : {})
+          status,
+          ...(status === 'Delivered' ? { delivered_date: new Date().toISOString() } : {})
         })
-        .eq('delivery_id', id);
+        .eq('id', id);
 
       if (error) throw error;
 

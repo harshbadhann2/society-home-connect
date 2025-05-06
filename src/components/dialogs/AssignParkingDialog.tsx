@@ -27,7 +27,7 @@ export function AssignParkingDialog({ open, onOpenChange, onAssign, spotId }: As
     queryKey: ["residents"],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase.from('resident').select('resident_id, name');
+        const { data, error } = await supabase.from('residents').select('id, name');
         
         if (error) {
           console.error('Error fetching residents:', error);
@@ -60,9 +60,9 @@ export function AssignParkingDialog({ open, onOpenChange, onAssign, spotId }: As
           resident_id: residentId,
           vehicle_type: vehicleType,
           vehicle_number: vehicleNumber,
-          parking_status: 'Occupied'
+          status: 'Occupied'
         })
-        .eq('parking_id', spotId);
+        .eq('id', spotId);
 
       if (error) {
         console.log('Error assigning parking in database, using local fallback:', error);
@@ -108,7 +108,7 @@ export function AssignParkingDialog({ open, onOpenChange, onAssign, spotId }: As
               </SelectTrigger>
               <SelectContent>
                 {residents?.map((resident) => (
-                  <SelectItem key={resident.resident_id} value={resident.resident_id.toString()}>
+                  <SelectItem key={resident.id} value={resident.id.toString()}>
                     {resident.name}
                   </SelectItem>
                 ))}

@@ -80,25 +80,14 @@ const Notices: React.FC = () => {
     queryKey: ['notices'],
     queryFn: async () => {
       try {
-        // Fix: Change from "notices" to "notice_board" to match the database schema
-        const { data, error } = await supabase.from('notice_board').select('*');
+        const { data, error } = await supabase.from('notices').select('*');
         
         if (error) {
           console.error('Supabase error:', error);
           return mockNotices;
         }
         
-        // Transform the data to match our Notice interface
-        const transformedData = data?.map(item => ({
-          id: item.notice_id,
-          title: item.title || '',
-          date: item.posted_date || new Date().toISOString(),
-          category: item.posted_by || 'General',
-          priority: 'medium', // Default since it's not in the DB schema
-          content: item.message || ''
-        })) || [];
-        
-        return transformedData as Notice[];
+        return (data || []) as Notice[];
       } catch (err) {
         console.error('Error fetching notices:', err);
         return mockNotices;

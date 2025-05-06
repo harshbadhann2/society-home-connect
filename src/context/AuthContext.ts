@@ -1,16 +1,14 @@
 
-import { createContext, useContext } from 'react';
+import { createContext } from 'react';
 
 export interface UserInfo {
   id?: number;
   name?: string;
   email?: string;
   contact?: string;
-  apartment?: string; // Ensuring this is consistently a string
+  apartment?: string;
   status?: string;
-  resident_id?: number;
-  userId?: number;
-  role?: 'admin' | 'staff' | 'resident';
+  resident_id?: number; // Adding this to store Supabase resident_id
 }
 
 interface AuthContextType {
@@ -30,14 +28,5 @@ const AuthContext = createContext<AuthContextType>({
   currentUser: null,
   setCurrentUser: () => {},
 });
-
-// Create and export the useAuth hook
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
 
 export default AuthContext;
