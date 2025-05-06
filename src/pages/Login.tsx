@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -45,7 +46,7 @@ const Login: React.FC = () => {
         // Fall back to mock data for development
         const mockUser = mockUsers.find(u => u.username === username);
         
-        if (mockUser && mockUser.password_hash === password) {
+        if (mockUser && (mockUser.password_hash === password || mockUser.password === password)) {
           toast({
             title: "Success! (Development Mode)",
             description: "You are now logged in using mock data"
@@ -64,7 +65,7 @@ const Login: React.FC = () => {
       
       const user = data as User;
       
-      if (user && user.password_hash === password) {
+      if (user && (user.password_hash === password || user.password === password)) {
         toast({
           title: "Login Successful",
           description: "Welcome back!"

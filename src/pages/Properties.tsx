@@ -1,4 +1,3 @@
-
 import React from 'react';
 import Layout from '@/components/layout/layout';
 import { Button } from '@/components/ui/button';
@@ -21,6 +20,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { mockApartments, Apartment } from '@/types/database';
 
 // Mock data for apartments
 const mockApartments = [
@@ -86,7 +86,7 @@ const Properties: React.FC = () => {
     queryKey: ['apartments'],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase.from('apartments').select('*');
+        const { data, error } = await supabase.from('apartment').select('*');
         
         if (error) {
           console.info('Supabase error:', error);
@@ -94,7 +94,27 @@ const Properties: React.FC = () => {
           return mockApartments;
         }
         
-        return data || mockApartments;
+        // Map database data to our Apartment interface
+        return data.map(apt => ({
+          apartment_id: apt.apartment_id,
+          id: apt.apartment_id,
+          apartment_number: apt.apartment_number || '',
+          unit: apt.apartment_number || '',
+          apartment_status: apt.apartment_status || '',
+          status: apt.apartment_status || '',
+          block: apt.block || '',
+          wing: apt.block || '',
+          floor_number: apt.floor_number || 0,
+          wing_id: apt.wing_id || 0,
+          owner_name: apt.owner_name || '',
+          owner: apt.owner_name || '',
+          owner_contact: apt.owner_contact || '',
+          // These are UI fields not in database
+          type: '2 BHK', // Default value
+          size: '1200 sqft', // Default value
+          bedrooms: 2, // Default value
+          bathrooms: 1 // Default value
+        })) as Apartment[];
       } catch (err) {
         console.error('Error fetching apartments:', err);
         return mockApartments;
@@ -102,6 +122,7 @@ const Properties: React.FC = () => {
     }
   });
 
+  // Count different apartment types
   const oneBhk = apartments?.filter(apt => apt.type === '1 BHK').length || 0;
   const twoBhk = apartments?.filter(apt => apt.type === '2 BHK').length || 0;
   const threeBhk = apartments?.filter(apt => apt.type === '3 BHK').length || 0;

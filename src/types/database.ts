@@ -28,6 +28,7 @@ export interface Resident {
   // For compatibility with existing code
   contact?: string;
   apartment?: string | number;
+  id?: number; // Adding id for compatibility
 }
 
 export interface Staff {
@@ -39,6 +40,7 @@ export interface Staff {
   email?: string;
   joining_date: string;
   status?: string;
+  salary?: number; // Added to match database
   // For compatibility with existing code
   contact?: string;
   id?: number;
@@ -55,6 +57,10 @@ export interface Parking {
   start_time?: string;
   end_time?: string;
   parking_type?: string;
+  // For compatibility with existing code
+  id?: number;
+  spot_number?: string; // Alias for slot_number
+  status?: string; // Alias for parking_status
 }
 
 export interface Housekeeping {
@@ -84,6 +90,9 @@ export interface Notice {
   priority?: string;
   // For compatibility with existing code
   id?: number;
+  date?: string; // Alias for posted_date
+  category?: string; // Not in database but used in component
+  content?: string; // Alias for message
 }
 
 export interface Complaint {
@@ -111,6 +120,13 @@ export interface Payment {
   payment_method: string;
   banking_status: string;
   purpose: string;
+  // For compatibility with existing code
+  id?: number;
+  description?: string;
+  status?: string;
+  date?: string;
+  apartment?: string;
+  currency?: string;
 }
 
 export interface Booking {
@@ -135,6 +151,48 @@ export interface User {
   phone?: string;
   role: string;
   created_at?: string;
+  // For compatibility with existing code
+  password?: string; // For login components
+}
+
+// Define a simplified apartment interface to match the database schema
+export interface Apartment {
+  apartment_id: number;
+  apartment_number: string;
+  type?: string; // Used in UI but not in database
+  size?: string; // Used in UI but not in database
+  bedrooms?: number; 
+  bathrooms?: number;
+  wing?: string;
+  owner_name?: string;
+  owner_contact?: string;
+  // For compatibility
+  id?: number;
+  unit?: string; // Alias for apartment_number
+  type?: string; // Used in UI but not in database
+  size?: string; // Used in UI but not in database
+  bedrooms?: number; 
+  bathrooms?: number;
+  wing?: string;
+  owner?: string; // Alias for owner_name
+  status?: string; // Alias for apartment_status
+}
+
+export interface Delivery {
+  delivery_id: number;
+  courier_company_name: string;
+  delivery_date: string;
+  resident_id: number;
+  received_by?: string;
+  delivery_status: string;
+  delivery_address?: string;
+  // For compatibility
+  id?: number; 
+  package_info?: string; // Alias for courier_company_name
+  received_date?: string; // Alias for delivery_date
+  status?: string; // Alias for delivery_status
+  courier_name?: string; // Alias for courier_company_name
+  delivered_date?: string;
 }
 
 // Mock data - Keep existing mock data declarations
@@ -591,5 +649,127 @@ export const mockHousekeeping: Housekeeping[] = [
     next_scheduled: "2025-04-29",
     assigned_staff: 3,
     id: 5
+  }
+];
+
+// Mock apartments data
+export const mockApartments: Apartment[] = [
+  {
+    apartment_id: 1,
+    apartment_number: 'A-101',
+    type: '2 BHK',
+    size: '1200 sqft',
+    bedrooms: 2,
+    bathrooms: 2,
+    wing: 'A',
+    owner_name: 'John Doe',
+    apartment_status: 'Occupied',
+    // For compatibility
+    id: 1,
+    unit: 'A-101',
+    owner: 'John Doe',
+    status: 'Occupied'
+  },
+  {
+    apartment_id: 2,
+    apartment_number: 'B-202',
+    type: '1 BHK',
+    size: '950 sqft',
+    bedrooms: 1,
+    bathrooms: 1,
+    wing: 'B',
+    owner_name: 'Jane Smith',
+    apartment_status: 'Occupied',
+    // For compatibility
+    id: 2,
+    unit: 'B-202',
+    owner: 'Jane Smith',
+    status: 'Occupied'
+  },
+  {
+    apartment_id: 3,
+    apartment_number: 'C-303',
+    type: '3 BHK',
+    size: '1800 sqft',
+    bedrooms: 3,
+    bathrooms: 2,
+    wing: 'C',
+    owner_name: 'Robert Johnson',
+    apartment_status: 'Occupied',
+    // For compatibility
+    id: 3,
+    unit: 'C-303',
+    owner: 'Robert Johnson',
+    status: 'Occupied'
+  },
+  {
+    apartment_id: 4,
+    apartment_number: 'D-404',
+    type: '2 BHK',
+    size: '1100 sqft',
+    bedrooms: 2,
+    bathrooms: 1,
+    wing: 'D',
+    owner_name: 'Michael Brown',
+    apartment_status: 'Vacant',
+    // For compatibility
+    id: 4,
+    unit: 'D-404',
+    owner: 'Michael Brown',
+    status: 'Vacant'
+  },
+  {
+    apartment_id: 5,
+    apartment_number: 'A-105',
+    type: '2 BHK',
+    size: '1300 sqft',
+    bedrooms: 2,
+    bathrooms: 2,
+    wing: 'A',
+    owner_name: 'Emily Wong',
+    apartment_status: 'Occupied',
+    // For compatibility
+    id: 5,
+    unit: 'A-105',
+    owner: 'Emily Wong',
+    status: 'Occupied'
+  },
+];
+
+// Add mock delivery data
+export const mockDeliveries: Delivery[] = [
+  {
+    delivery_id: 1,
+    package_info: 'Amazon Package',
+    resident_id: 1,
+    received_date: '2025-05-01T10:30:00',
+    status: 'Delivered',
+    courier_name: 'Amazon Logistics',
+    delivered_date: '2025-05-01T15:45:00',
+    courier_company_name: 'Amazon Logistics',
+    delivery_date: '2025-05-01T10:30:00',
+    delivery_status: 'Delivered'
+  },
+  {
+    delivery_id: 2,
+    package_info: 'Food Delivery',
+    resident_id: 3,
+    received_date: '2025-05-02T12:15:00',
+    status: 'Received',
+    courier_name: 'Swiggy',
+    courier_company_name: 'Swiggy',
+    delivery_date: '2025-05-02T12:15:00',
+    delivery_status: 'Received'
+  },
+  {
+    delivery_id: 3,
+    package_info: 'Electronics Package',
+    resident_id: 2,
+    received_date: '2025-05-03T09:45:00',
+    status: 'Received',
+    courier_name: 'Flipkart',
+    courier_company_name: 'Flipkart',
+    delivery_date: '2025-05-03T09:45:00',
+    delivery_status: 'Received'
   }
 ];

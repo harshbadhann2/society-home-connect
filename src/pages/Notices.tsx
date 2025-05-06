@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import Layout from '@/components/layout/layout';
 import { Button } from '@/components/ui/button';
@@ -13,49 +14,57 @@ import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { CreateNoticeDialog } from '@/components/dialogs/CreateNoticeDialog';
-
-interface Notice {
-  id: number;
-  title: string;
-  date: string;
-  category: string;
-  priority: string;
-  content: string;
-}
+import { Notice, mockComplaints } from '@/types/database';
 
 // Mock notices data
 const mockNotices = [
   {
     id: 1,
+    notice_id: 1,
     title: 'Annual General Meeting',
     date: '2025-05-15',
+    posted_date: '2025-05-01',
     category: 'Meeting',
     priority: 'high',
     content: 'The Annual General Meeting will be held in the community hall at 6:00 PM. All residents are requested to attend.',
+    message: 'The Annual General Meeting will be held in the community hall at 6:00 PM. All residents are requested to attend.',
+    posted_by: 'Society Secretary'
   },
   {
     id: 2,
+    notice_id: 2,
     title: 'Water Supply Interruption',
     date: '2025-05-10',
+    posted_date: '2025-05-05',
     category: 'Maintenance',
     priority: 'medium',
     content: 'Water supply will be interrupted from 10:00 AM to 2:00 PM for maintenance work.',
+    message: 'Water supply will be interrupted from 10:00 AM to 2:00 PM for maintenance work.',
+    posted_by: 'Maintenance Manager'
   },
   {
     id: 3,
+    notice_id: 3,
     title: 'New Security Measures',
     date: '2025-05-08',
+    posted_date: '2025-05-03',
     category: 'Security',
     priority: 'high',
     content: 'New security protocols will be implemented starting next week. Please check your email for details.',
+    message: 'New security protocols will be implemented starting next week. Please check your email for details.',
+    posted_by: 'Security Head'
   },
   {
     id: 4,
+    notice_id: 4,
     title: 'Community Garden Initiative',
     date: '2025-05-05',
+    posted_date: '2025-05-01',
     category: 'Community',
     priority: 'low',
     content: 'Join us this Saturday for the launch of our community garden project.',
+    message: 'Join us this Saturday for the launch of our community garden project.',
+    posted_by: 'Community Manager'
   },
 ];
 
@@ -86,13 +95,17 @@ const Notices: React.FC = () => {
           return mockNotices;
         }
         
+        // Process the data to match our Notice interface
         return data.map(item => ({
           notice_id: item.notice_id,
           title: item.title || '',
           message: item.message || '',
+          content: item.message || '', // Map message to content for compatibility
           posted_by: item.posted_by || '',
           posted_date: item.posted_date || '',
-          priority: item.priority || 'Normal',
+          date: item.posted_date || '', // Map posted_date to date for compatibility
+          priority: item.priority || 'normal',
+          category: 'General', // Default category since it's not in database
           // Compatibility fields
           id: item.notice_id,
         })) as Notice[];

@@ -76,7 +76,18 @@ const Residents: React.FC = () => {
           throw error;
         }
         
-        return data as Resident[];
+        return data.map(res => ({
+          resident_id: res.resident_id,
+          id: res.resident_id,
+          name: res.name || '',
+          apartment_id: res.apartment_id || 0,
+          apartment: res.apartment_id?.toString() || '',
+          status: res.status || '',
+          contact_number: res.contact_number || '',
+          contact: res.contact_number || '',
+          email: res.email || '',
+          joining_date: res.joining_date || ''
+        })) as Resident[];
       } catch (err) {
         console.log("Falling back to mock data:", err);
         return mockResidents;
@@ -87,7 +98,7 @@ const Residents: React.FC = () => {
   // Handle search functionality
   const filteredResidents = residents?.filter(resident =>
     resident.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    resident.apartment?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (resident.apartment?.toString() || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     resident.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -102,7 +113,7 @@ const Residents: React.FC = () => {
     }
   }, [error]);
 
-  const handleAddResident = async (newResident: Omit<Resident, 'id' | 'created_at'>) => {
+  const handleAddResident = async (newResident: Omit<Resident, 'id' | 'created_at' | 'resident_id'>) => {
     if (!canViewAllResidents) {
       toast({
         title: "Permission Denied",
@@ -137,8 +148,10 @@ const Residents: React.FC = () => {
         .insert([{ 
           name: newResident.name,
           email: newResident.email,
-          contact_number: newResident.contact,
-          apartment_id: parseInt(newResident.apartment),
+          contact_number: newResident.contact || newResident.contact_number,
+          apartment_id: typeof newResident.apartment === 'string' ? 
+            parseInt(newResident.apartment) : 
+            newResident.apartment_id || newResident.apartment || 0,
           status: newResident.status,
           joining_date: new Date().toISOString().split('T')[0]
         }])

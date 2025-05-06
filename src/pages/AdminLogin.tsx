@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -45,7 +46,7 @@ const AdminLogin: React.FC = () => {
         // Fall back to mock users for development/testing
         const mockUser = mockUsers.find(u => u.username === username);
         
-        if (mockUser && mockUser.password_hash === password) {
+        if (mockUser && (mockUser.password_hash === password || mockUser.password === password)) {
           toast({
             title: "Success! (Development Mode)",
             description: "You are now logged in using mock data",
@@ -67,7 +68,7 @@ const AdminLogin: React.FC = () => {
       // Here you would normally use a secure password comparison
       // This is just for demonstration - in a real app, NEVER store
       // or compare passwords in the frontend
-      if (user && user.password_hash === password) {
+      if (user && (user.password_hash === password || user.password === password)) {
         // Set auth context state or session
         toast({
           title: "Success!",
