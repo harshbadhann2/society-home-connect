@@ -1,10 +1,9 @@
-
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Staff, Housekeeping } from '@/types/database';
+import { Staff } from '@/types/database';
 import { 
   Select,
   SelectContent,
@@ -37,13 +36,17 @@ const AssignTaskDialog = ({ open, onOpenChange, staffMember }: AssignTaskDialogP
     return format(addDays(new Date(), daysToAdd), 'yyyy-MM-dd');
   };
   
-  const [formData, setFormData] = useState<Omit<Housekeeping, 'id' | 'created_at'>>({
+  // Match the housekeeping table structure
+  const [formData, setFormData] = useState({
+    service_type: '',
+    cleaning_date: getCurrentDate(),
+    cleaning_status: 'Scheduled',
+    staff_id: staffMember?.staff_id || 0,
+    resident_id: null, // We'll leave this null for general tasks
+    // Additional fields for UI but not directly mapped to DB
     area: '',
     task_description: '',
-    assigned_staff: staffMember?.id || 0,
     frequency: 'Daily',
-    status: 'Scheduled',
-    last_completed: getCurrentDate(),
     next_scheduled: getNextDate('Daily'),
   });
 
@@ -52,7 +55,7 @@ const AssignTaskDialog = ({ open, onOpenChange, staffMember }: AssignTaskDialogP
     if (staffMember) {
       setFormData(prev => ({
         ...prev,
-        assigned_staff: staffMember.id,
+        staff_id: staffMember.staff_id,
       }));
     }
   });
@@ -86,14 +89,18 @@ const AssignTaskDialog = ({ open, onOpenChange, staffMember }: AssignTaskDialogP
     setIsSubmitting(true);
     
     try {
+      // Map form data to match housekeeping table structure
+      const houseKeepingData = {
+        service_type: formData.task_description, // Use task description as service type
+        cleaning_date: formData.cleaning_date,
+        cleaning_status: formData.cleaning_status,
+        staff_id: staffMember.staff_id,
+      };
+
       // Try to add task to Supabase
       const { data, error } = await supabase
         .from('housekeeping')
-        .insert([{ 
-          ...formData, 
-          assigned_staff: staffMember.id,
-          created_at: new Date().toISOString() 
-        }])
+        .insert(houseKeepingData)
         .select();
 
       if (error) {
@@ -182,12 +189,12 @@ const AssignTaskDialog = ({ open, onOpenChange, staffMember }: AssignTaskDialogP
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
+                <Label htmlFor="cleaning_status">Status</Label>
                 <Select 
-                  value={formData.status} 
-                  onValueChange={(value) => handleSelectChange('status', value)}
+                  value={formData.cleaning_status} 
+                  onValueChange={(value) => handleSelectChange('cleaning_status', value)}
                 >
-                  <SelectTrigger id="status">
+                  <SelectTrigger id="cleaning_status">
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -198,12 +205,12 @@ const AssignTaskDialog = ({ open, onOpenChange, staffMember }: AssignTaskDialogP
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="last_completed">Last Completed</Label>
+                <Label htmlFor="cleaning_date">Cleaning Date</Label>
                 <Input 
-                  id="last_completed" 
-                  name="last_completed" 
+                  id="cleaning_date" 
+                  name="cleaning_date" 
                   type="date" 
-                  value={formData.last_completed} 
+                  value={formData.cleaning_date} 
                   onChange={handleChange} 
                   required 
                 />

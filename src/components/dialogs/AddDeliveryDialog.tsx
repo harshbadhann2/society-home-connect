@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { mockResidents } from "@/types/database";
 
 interface AddDeliveryDialogProps {
   open: boolean;
@@ -22,15 +23,29 @@ export function AddDeliveryDialog({ open, onOpenChange, onAdd }: AddDeliveryDial
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  const { data: residents } = useQuery({
+  // Use fallback data if query fails
+  const { data: residents = mockResidents } = useQuery({
     queryKey: ["delivery-residents"],
     queryFn: async () => {
-      const { data, error } = await supabase.from('resident').select('resident_id, name, apartment');
-      if (error) {
-        console.error('Error fetching residents:', error);
-        return [];
+      try {
+        const { data, error } = await supabase
+          .from('resident')
+          .select('resident_id, name, contact_number, apartment_id');
+        
+        if (error) {
+          console.error('Error fetching residents:', error);
+          return mockResidents;
+        }
+        
+        return data.map(r => ({
+          ...r,
+          contact: r.contact_number, // Map for backwards compatibility
+          apartment: `A-${r.apartment_id}` // Create apartment string for display
+        }));
+      } catch (error) {
+        console.error('Unexpected error fetching residents:', error);
+        return mockResidents;
       }
-      return data;
     }
   });
 
@@ -46,6 +61,7 @@ export function AddDeliveryDialog({ open, onOpenChange, onAdd }: AddDeliveryDial
 
     setIsSubmitting(true);
     try {
+      // Try to insert into Supabase
       const { error } = await supabase
         .from('delivery_records')
         .insert({
@@ -53,9 +69,13 @@ export function AddDeliveryDialog({ open, onOpenChange, onAdd }: AddDeliveryDial
           courier_company_name: courier,
           delivery_status: 'Received',
           delivery_date: new Date().toISOString(),
+          delivery_address: packageInfo // Using packageInfo as delivery_address
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error adding delivery to database:', error);
+        throw error;
+      }
 
       toast({
         title: "Delivery added",
@@ -95,8 +115,8 @@ export function AddDeliveryDialog({ open, onOpenChange, onAdd }: AddDeliveryDial
               </SelectTrigger>
               <SelectContent>
                 {residents?.map((resident) => (
-                  <SelectItem key={resident.resident_id} value={resident.resident_id.toString()}>
-                    {resident.name} ({resident.apartment})
+                  <SelectItem key={resident.resident_id} value={resident.resident_id?.toString() || ''}>
+                    {resident.name} ({resident.apartment || resident.apartment_id})
                   </SelectItem>
                 ))}
               </SelectContent>

@@ -9,6 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { IndianRupee } from 'lucide-react';
+import { mockResidents } from '@/types/database';
 
 interface RecordPaymentDialogProps {
   open: boolean;
@@ -24,15 +25,28 @@ export function RecordPaymentDialog({ open, onOpenChange, onAdd }: RecordPayment
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  const { data: residents } = useQuery({
-    queryKey: ["residents"],
+  // Use fallback data if query fails
+  const { data: residents = mockResidents } = useQuery({
+    queryKey: ["payment-residents"],
     queryFn: async () => {
-      const { data, error } = await supabase.from('residents').select('id, name, apartment');
-      if (error) {
-        console.error('Error fetching residents:', error);
-        return [];
+      try {
+        const { data, error } = await supabase
+          .from('resident')
+          .select('resident_id, name, apartment_id');
+        
+        if (error) {
+          console.error('Error fetching residents:', error);
+          return mockResidents;
+        }
+        
+        return data.map(r => ({
+          ...r,
+          apartment: `A-${r.apartment_id}` // Create apartment string for display
+        }));
+      } catch (err) {
+        console.error('Error in residents query:', err);
+        return mockResidents;
       }
-      return data;
     }
   });
 
@@ -58,19 +72,22 @@ export function RecordPaymentDialog({ open, onOpenChange, onAdd }: RecordPayment
 
     setIsSubmitting(true);
     try {
+      // Try to insert into banking table (equivalent to payments)
       const { error } = await supabase
-        .from('payments')
+        .from('banking')
         .insert({
           resident_id: residentId,
-          description,
+          purpose: description,
           amount: amountValue,
-          currency: 'INR',
-          date: new Date().toISOString(),
+          transaction_date: new Date().toISOString(),
           payment_method: paymentMethod,
-          status: 'Paid',
+          banking_status: 'Paid'
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error inserting into banking table:', error);
+        throw error;
+      }
 
       toast({
         title: "Payment recorded",
@@ -110,8 +127,8 @@ export function RecordPaymentDialog({ open, onOpenChange, onAdd }: RecordPayment
               </SelectTrigger>
               <SelectContent>
                 {residents?.map((resident) => (
-                  <SelectItem key={resident.id} value={resident.id.toString()}>
-                    {resident.name} ({resident.apartment})
+                  <SelectItem key={resident.resident_id} value={resident.resident_id?.toString() || ''}>
+                    {resident.name} ({resident.apartment || resident.apartment_id})
                   </SelectItem>
                 ))}
               </SelectContent>

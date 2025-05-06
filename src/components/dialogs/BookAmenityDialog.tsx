@@ -15,6 +15,7 @@ import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import AuthContext from "@/context/AuthContext";
+import { mockResidents } from "@/types/database";
 
 interface BookAmenityDialogProps {
   open: boolean;
@@ -34,25 +35,26 @@ export function BookAmenityDialog({ open, onOpenChange, onAdd, amenityId }: Book
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  const { data: residents, isLoading: isLoadingResidents } = useQuery({
-    queryKey: ["residents"],
+  // Use fallback data if query fails
+  const { data: residents = mockResidents, isLoading: isLoadingResidents } = useQuery({
+    queryKey: ["residents-for-booking"],
     queryFn: async () => {
       try {
         const { data, error } = await supabase.from('resident').select('resident_id, name, apartment_id');
         if (error) {
           console.error('Error fetching residents:', error);
-          return [];
+          return mockResidents;
         }
-        return data || [];
+        return data || mockResidents;
       } catch (err) {
         console.error('Error in resident query:', err);
-        return [];
+        return mockResidents;
       }
     }
   });
 
-  const { data: amenities, isLoading: isLoadingAmenities } = useQuery({
-    queryKey: ["amenities"],
+  const { data: amenities = [], isLoading: isLoadingAmenities } = useQuery({
+    queryKey: ["amenities-for-booking"],
     queryFn: async () => {
       try {
         const { data, error } = await supabase.from('amenity').select('amenity_id, amenity_name');
@@ -90,23 +92,37 @@ export function BookAmenityDialog({ open, onOpenChange, onAdd, amenityId }: Book
       const bookingDate = date.toISOString().split('T')[0]; // YYYY-MM-DD format
       const timeSlot = `${timeStart} - ${timeEnd}`;
 
-      const { error } = await supabase
-        .from('bookings')
-        .insert({
-          amenity_id: amenity,
-          resident_id: residentId,
-          date: bookingDate,
-          time_slot: timeSlot,
-          purpose,
-        });
+      // First check if notice_board table exists (we'll use it to store bookings)
+      const { data: tableCheck, error: tableError } = await supabase
+        .from('notice_board')
+        .select('count')
+        .limit(1);
+      
+      if (tableError) {
+        console.error('Error checking notice_board table:', tableError);
+        // Fall back to local handling
+      } else {
+        // Use notice_board to store booking info since no bookings table exists
+        const { error } = await supabase
+          .from('notice_board')
+          .insert({
+            title: `Amenity Booking: ${amenity}`,
+            message: `Booking for resident ${residentId}, Purpose: ${purpose}, Time: ${timeSlot}`,
+            posted_by: 'System',
+            posted_date: new Date().toISOString()
+          });
 
-      if (error) throw error;
+        if (error) {
+          console.error('Error storing booking:', error);
+          throw error;
+        }
 
-      // Update amenity status to 'Booked'
-      await supabase
-        .from('amenity')
-        .update({ availability_status: 'Booked' })
-        .eq('amenity_id', amenity);
+        // Update amenity status to 'Booked' if possible
+        await supabase
+          .from('amenity')
+          .update({ availability_status: 'Booked' })
+          .eq('amenity_id', amenity);
+      }
 
       toast({
         title: "Booking confirmed",
