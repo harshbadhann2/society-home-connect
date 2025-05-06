@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Layout from '@/components/layout/layout';
 import { Button } from '@/components/ui/button';
@@ -22,6 +21,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { MessageSquare, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { FileComplaintDialog } from '@/components/dialogs/FileComplaintDialog';
+import { Complaint, mockComplaints } from '@/types/database';
 
 // Common type for complaint structure
 interface Complaint {
@@ -101,14 +101,42 @@ const Complaints: React.FC = () => {
     queryKey: ['complaints'],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase.from('complaints').select('*').order('date_filed', { ascending: false });
+        // Check if complaint table exists in the database
+        const { error: checkError } = await supabase
+          .from('complaint')
+          .select('count')
+          .limit(1);
+          
+        if (checkError && checkError.message.includes('does not exist')) {
+          console.info('Complaint table does not exist, using mock data');
+          return mockComplaints;
+        }
+        
+        // Table exists, try to fetch data
+        const { data, error } = await supabase
+          .from('complaint')
+          .select('*')
+          .order('date_raised', { ascending: false });
         
         if (error) {
           console.error('Supabase error:', error);
           return mockComplaints;
         }
         
-        return (data as Complaint[]) || mockComplaints;
+        return data.map(item => ({
+          complaint_id: item.complaint_id,
+          subject: item.subject || '',
+          complaint_text: item.complaint_text || '',
+          resident_id: item.resident_id || 0,
+          complaint_status: item.complaint_status || 'Pending',
+          date_raised: item.date_raised || new Date().toISOString(),
+          // Compatibility fields
+          id: item.complaint_id,
+          description: item.complaint_text || '',
+          category: 'General',
+          status: item.complaint_status || 'Pending',
+          date_filed: item.date_raised || new Date().toISOString()
+        }) as Complaint);
       } catch (err) {
         console.error('Error fetching complaints:', err);
         return mockComplaints;
@@ -120,7 +148,7 @@ const Complaints: React.FC = () => {
     queryKey: ['residents'],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase.from('residents').select('id, name');
+        const { data, error } = await supabase.from('resident').select('resident_id, name');
         
         if (error) {
           console.error('Supabase error fetching residents:', error);
@@ -137,7 +165,7 @@ const Complaints: React.FC = () => {
 
   const getResidentName = (residentId: number) => {
     if (residents && residents.length > 0) {
-      const resident = residents.find((r: any) => r.id === residentId);
+      const resident = residents.find((r: any) => r.resident_id === residentId);
       return resident ? resident.name : 'Unknown';
     }
     
@@ -148,14 +176,14 @@ const Complaints: React.FC = () => {
   const handleStatusChange = async (id: number, newStatus: string) => {
     try {
       const updates = {
-        status: newStatus,
+        complaint_status: newStatus,
         ...(newStatus === 'Resolved' ? { date_resolved: new Date().toISOString() } : {})
       };
       
       const { error } = await supabase
-        .from('complaints')
+        .from('complaint')
         .update(updates)
-        .eq('id', id);
+        .eq('complaint_id', id);
         
       if (error) throw error;
       
@@ -165,9 +193,9 @@ const Complaints: React.FC = () => {
     }
   };
 
-  const pendingCount = complaints?.filter(c => c.status.toLowerCase() === 'pending').length || 0;
-  const inProgressCount = complaints?.filter(c => c.status.toLowerCase() === 'in progress').length || 0;
-  const resolvedCount = complaints?.filter(c => c.status.toLowerCase() === 'resolved').length || 0;
+  const pendingCount = complaints?.filter(c => (c.complaint_status || c.status || '').toLowerCase() === 'pending').length || 0;
+  const inProgressCount = complaints?.filter(c => (c.complaint_status || c.status || '').toLowerCase() === 'in progress').length || 0;
+  const resolvedCount = complaints?.filter(c => (c.complaint_status || c.status || '').toLowerCase() === 'resolved').length || 0;
 
   return (
     <Layout>

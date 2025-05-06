@@ -1,21 +1,21 @@
 
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Textarea } from "@/components/ui/textarea";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
+import { Amenity, mockAmenities } from "@/types/database";
 import AuthContext from "@/context/AuthContext";
-import { mockResidents } from "@/types/database";
 
 interface BookAmenityDialogProps {
   open: boolean;
@@ -25,116 +25,152 @@ interface BookAmenityDialogProps {
 }
 
 export function BookAmenityDialog({ open, onOpenChange, onAdd, amenityId }: BookAmenityDialogProps) {
-  const { currentUser } = useContext(AuthContext);
-  const [residentId, setResidentId] = useState<number | null>(currentUser?.resident_id || null);
-  const [amenity, setAmenity] = useState<number | null>(amenityId || null);
-  const [purpose, setPurpose] = useState("");
   const [date, setDate] = useState<Date | undefined>(new Date());
-  const [timeStart, setTimeStart] = useState("");
-  const [timeEnd, setTimeEnd] = useState("");
+  const [timeSlot, setTimeSlot] = useState<string>("");
+  const [purpose, setPurpose] = useState<string>("");
+  const [selectedAmenityId, setSelectedAmenityId] = useState<number | undefined>(amenityId);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
-
-  // Use fallback data if query fails
-  const { data: residents = mockResidents, isLoading: isLoadingResidents } = useQuery({
-    queryKey: ["residents-for-booking"],
+  const { currentUser } = useContext(AuthContext);
+  
+  // Load amenities for the dropdown
+  const { data: amenities = mockAmenities } = useQuery({
+    queryKey: ["bookable-amenities"],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase.from('resident').select('resident_id, name, apartment_id');
+        const { data, error } = await supabase
+          .from("amenity")
+          .select("*")
+          .eq("availability_status", "Available");
+
         if (error) {
-          console.error('Error fetching residents:', error);
-          return mockResidents;
+          console.error("Error loading amenities:", error);
+          // Filter mock data to only show available amenities
+          return mockAmenities.filter(a => a.availability_status === "Available");
         }
-        return data || mockResidents;
+
+        return data.map(item => ({
+          amenity_id: item.amenity_id,
+          amenity_name: item.amenity_name || "Unknown",
+          availability_status: item.availability_status || "Available",
+          operating_hours: item.operating_hours || "9:00 AM - 9:00 PM",
+          staff_id: item.staff_id,
+          booking_fees: item.booking_fees,
+          booking_required: item.booking_required,
+          location: item.location,
+          capacity: item.capacity,
+          maintenance_day: item.maintenance_day,
+          // Compatibility fields
+          id: item.amenity_id,
+          name: item.amenity_name,
+          status: item.availability_status,
+          opening_hours: item.operating_hours
+        }) as Amenity);
       } catch (err) {
-        console.error('Error in resident query:', err);
-        return mockResidents;
+        console.error("Failed to fetch amenities:", err);
+        // Filter mock data to only show available amenities
+        return mockAmenities.filter(a => a.availability_status === "Available");
       }
     }
   });
 
-  const { data: amenities = [], isLoading: isLoadingAmenities } = useQuery({
-    queryKey: ["amenities-for-booking"],
-    queryFn: async () => {
-      try {
-        const { data, error } = await supabase.from('amenity').select('amenity_id, amenity_name');
-        if (error) {
-          console.error('Error fetching amenities:', error);
-          return [];
-        }
-        return data || [];
-      } catch (err) {
-        console.error('Error in amenities query:', err);
-        return [];
-      }
-    }
-  });
+  // Common time slots for booking
+  const timeSlots = [
+    "6:00 AM - 8:00 AM",
+    "8:00 AM - 10:00 AM",
+    "10:00 AM - 12:00 PM",
+    "12:00 PM - 2:00 PM",
+    "2:00 PM - 4:00 PM",
+    "4:00 PM - 6:00 PM",
+    "6:00 PM - 8:00 PM",
+    "8:00 PM - 10:00 PM"
+  ];
 
-  // Set current user as default resident when logged in
-  useEffect(() => {
-    if (currentUser?.resident_id) {
-      setResidentId(currentUser.resident_id);
+  // Reset form when dialog opens
+  React.useEffect(() => {
+    if (open) {
+      setDate(new Date());
+      setTimeSlot("");
+      setPurpose("");
+      setSelectedAmenityId(amenityId);
     }
-  }, [currentUser]);
+  }, [open, amenityId]);
 
   const handleSubmit = async () => {
-    if (!amenity || !date || !timeStart || !timeEnd || !purpose || !residentId) {
+    if (!date || !timeSlot || !purpose || !selectedAmenityId) {
       toast({
-        title: "Missing fields",
+        title: "Missing information",
         description: "Please fill in all required fields",
         variant: "destructive"
       });
       return;
     }
 
-    setIsSubmitting(true);
-    try {
-      const bookingDate = date.toISOString().split('T')[0]; // YYYY-MM-DD format
-      const timeSlot = `${timeStart} - ${timeEnd}`;
+    if (!currentUser || !currentUser.resident_id) {
+      toast({
+        title: "Authentication required",
+        description: "You must be logged in to book an amenity",
+        variant: "destructive"
+      });
+      return;
+    }
 
-      // First check if notice_board table exists (we'll use it to store bookings)
-      const { data: tableCheck, error: tableError } = await supabase
-        .from('notice_board')
+    setIsSubmitting(true);
+
+    try {
+      // Check if booking table exists in the database
+      const { error: checkError } = await supabase
+        .from('booking')
         .select('count')
         .limit(1);
+        
+      if (checkError && checkError.message.includes('does not exist')) {
+        toast({
+          title: "Booking System Unavailable",
+          description: "The booking system is currently not set up. Please contact the administrator.",
+          variant: "destructive"
+        });
+        setIsSubmitting(false);
+        return;
+      }
       
-      if (tableError) {
-        console.error('Error checking notice_board table:', tableError);
-        // Fall back to local handling
-      } else {
-        // Use notice_board to store booking info since no bookings table exists
-        const { error } = await supabase
-          .from('notice_board')
-          .insert({
-            title: `Amenity Booking: ${amenity}`,
-            message: `Booking for resident ${residentId}, Purpose: ${purpose}, Time: ${timeSlot}`,
-            posted_by: 'System',
-            posted_date: new Date().toISOString()
-          });
+      // Prepare booking data
+      const bookingData = {
+        amenity_id: selectedAmenityId,
+        resident_id: currentUser.resident_id,
+        booking_date: format(date, "yyyy-MM-dd"),
+        time_slot: timeSlot,
+        purpose: purpose,
+        status: "Pending" // Default status for new bookings
+      };
 
-        if (error) {
-          console.error('Error storing booking:', error);
-          throw error;
-        }
+      // Try to insert into Supabase
+      const { error } = await supabase
+        .from('booking')
+        .insert(bookingData);
 
-        // Update amenity status to 'Booked' if possible
-        await supabase
-          .from('amenity')
-          .update({ availability_status: 'Booked' })
-          .eq('amenity_id', amenity);
+      if (error) {
+        throw error;
       }
 
+      // Update amenity status
+      await supabase
+        .from('amenity')
+        .update({ availability_status: "Booked" })
+        .eq('amenity_id', selectedAmenityId);
+
       toast({
-        title: "Booking confirmed",
-        description: "The amenity has been successfully booked."
+        title: "Booking successful",
+        description: "Your amenity booking has been submitted successfully."
       });
+      
       onOpenChange(false);
       if (onAdd) onAdd();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error booking amenity:', error);
       toast({
-        title: "Error",
-        description: "Failed to book amenity. Please try again.",
+        title: "Booking failed",
+        description: error.message || "There was an error processing your booking. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -144,119 +180,94 @@ export function BookAmenityDialog({ open, onOpenChange, onAdd, amenityId }: Book
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px]">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Book Amenity</DialogTitle>
+          <DialogTitle>Book Society Amenity</DialogTitle>
           <DialogDescription>
-            Book a society amenity for your event or activity.
+            Reserve an amenity for your use. All bookings are subject to approval.
           </DialogDescription>
         </DialogHeader>
+
         <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="resident" className="text-right">
-              Resident
-            </Label>
-            <Select 
-              onValueChange={(value) => setResidentId(Number(value))}
-              value={residentId ? residentId.toString() : undefined}
-              disabled={!!currentUser?.resident_id}
-            >
-              <SelectTrigger className="col-span-3">
-                <SelectValue placeholder="Select a resident" />
-              </SelectTrigger>
-              <SelectContent>
-                {isLoadingResidents ? (
-                  <SelectItem value="loading" disabled>Loading...</SelectItem>
-                ) : residents && residents.length > 0 ? (
-                  residents.map((resident) => (
-                    <SelectItem key={resident.resident_id} value={resident.resident_id.toString()}>
-                      {resident.name || 'Unknown'} ({resident.apartment_id || 'N/A'})
+          {!amenityId && (
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="amenity" className="text-right">
+                Amenity
+              </Label>
+              <Select
+                value={selectedAmenityId?.toString()}
+                onValueChange={(value) => setSelectedAmenityId(parseInt(value))}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select an amenity" />
+                </SelectTrigger>
+                <SelectContent>
+                  {amenities.map((amenity) => (
+                    <SelectItem 
+                      key={amenity.amenity_id} 
+                      value={amenity.amenity_id?.toString() || ''}
+                      disabled={amenity.availability_status !== "Available"}
+                    >
+                      {amenity.amenity_name || 'Unknown'}
                     </SelectItem>
-                  ))
-                ) : (
-                  <SelectItem value="none" disabled>No residents found</SelectItem>
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="amenity" className="text-right">
-              Amenity
-            </Label>
-            <Select 
-              onValueChange={(value) => setAmenity(Number(value))}
-              defaultValue={amenityId ? amenityId.toString() : undefined}
-            >
-              <SelectTrigger className="col-span-3">
-                <SelectValue placeholder="Select an amenity" />
-              </SelectTrigger>
-              <SelectContent>
-                {isLoadingAmenities ? (
-                  <SelectItem value="loading" disabled>Loading...</SelectItem>
-                ) : amenities && amenities.length > 0 ? (
-                  amenities.map((item) => (
-                    <SelectItem key={item.amenity_id} value={item.amenity_id.toString()}>
-                      {item.amenity_name || 'Unknown Amenity'}
-                    </SelectItem>
-                  ))
-                ) : (
-                  <SelectItem value="none" disabled>No amenities found</SelectItem>
-                )}
-              </SelectContent>
-            </Select>
-          </div>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="date" className="text-right">
               Date
             </Label>
-            <Popover>
-              <PopoverTrigger asChild className="col-span-3">
-                <Button
-                  variant={"outline"}
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !date && "text-muted-foreground"
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {date ? format(date, "PPP") : <span>Pick a date</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0">
-                <Calendar
-                  mode="single"
-                  selected={date}
-                  onSelect={setDate}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
+            <div className="col-span-3">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !date && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {date ? format(date, "PPP") : <span>Pick a date</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={date}
+                    onSelect={setDate}
+                    initialFocus
+                    disabled={(date) =>
+                      date < new Date(new Date().setHours(0, 0, 0, 0)) // Disable past dates
+                    }
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
+
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="timeStart" className="text-right">
-              Start Time
+            <Label htmlFor="timeSlot" className="text-right">
+              Time Slot
             </Label>
-            <Input
-              id="timeStart"
-              type="time"
-              value={timeStart}
-              onChange={(e) => setTimeStart(e.target.value)}
-              className="col-span-3"
-            />
+            <Select value={timeSlot} onValueChange={setTimeSlot}>
+              <SelectTrigger className="col-span-3">
+                <SelectValue placeholder="Select a time slot" />
+              </SelectTrigger>
+              <SelectContent>
+                {timeSlots.map((slot) => (
+                  <SelectItem key={slot} value={slot}>
+                    {slot}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
+
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="timeEnd" className="text-right">
-              End Time
-            </Label>
-            <Input
-              id="timeEnd"
-              type="time"
-              value={timeEnd}
-              onChange={(e) => setTimeEnd(e.target.value)}
-              className="col-span-3"
-            />
-          </div>
-          <div className="grid grid-cols-4 gap-4">
             <Label htmlFor="purpose" className="text-right">
               Purpose
             </Label>
@@ -264,12 +275,15 @@ export function BookAmenityDialog({ open, onOpenChange, onAdd, amenityId }: Book
               id="purpose"
               value={purpose}
               onChange={(e) => setPurpose(e.target.value)}
+              placeholder="Briefly describe the purpose of your booking"
               className="col-span-3"
-              placeholder="Describe the purpose of your booking..."
             />
           </div>
         </div>
         <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
           <Button type="submit" onClick={handleSubmit} disabled={isSubmitting}>
             {isSubmitting ? "Booking..." : "Book Amenity"}
           </Button>

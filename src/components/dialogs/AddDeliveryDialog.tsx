@@ -37,9 +37,13 @@ export function AddDeliveryDialog({ open, onOpenChange, onAdd }: AddDeliveryDial
           return mockResidents;
         }
         
-        return data.map(r => ({
-          ...r,
-          contact: r.contact_number, // Map for backwards compatibility
+        return data.map((r: any) => ({
+          resident_id: r.resident_id,
+          name: r.name,
+          contact_number: r.contact_number,
+          apartment_id: r.apartment_id,
+          // Compatibility fields
+          contact: r.contact_number, 
           apartment: `A-${r.apartment_id}` // Create apartment string for display
         }));
       } catch (error) {

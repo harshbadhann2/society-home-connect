@@ -1,20 +1,20 @@
+
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Staff } from '@/types/database';
-import { 
+import { Staff, Housekeeping } from '@/types/database';
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from '@/components/ui/textarea';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/components/ui/use-toast';
-import { format, addDays } from 'date-fns';
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client"; 
+import { useToast } from '@/hooks/use-toast';
 
 interface AssignTaskDialogProps {
   open: boolean;
@@ -24,40 +24,40 @@ interface AssignTaskDialogProps {
 
 const AssignTaskDialog = ({ open, onOpenChange, staffMember }: AssignTaskDialogProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
   
-  const getCurrentDate = () => format(new Date(), 'yyyy-MM-dd');
-  const getNextDate = (frequency: string) => {
-    const daysToAdd = 
-      frequency === 'Daily' ? 1 :
-      frequency === 'Weekly' ? 7 :
-      frequency === 'Bi-weekly' ? 14 :
-      frequency === 'Monthly' ? 30 : 1;
-    
-    return format(addDays(new Date(), daysToAdd), 'yyyy-MM-dd');
-  };
-  
-  // Match the housekeeping table structure
   const [formData, setFormData] = useState({
-    service_type: '',
-    cleaning_date: getCurrentDate(),
-    cleaning_status: 'Scheduled',
-    staff_id: staffMember?.staff_id || 0,
-    resident_id: null, // We'll leave this null for general tasks
-    // Additional fields for UI but not directly mapped to DB
-    area: '',
-    task_description: '',
+    task_type: 'Regular Cleaning',
+    area: 'Common Area',
+    description: '',
     frequency: 'Daily',
-    next_scheduled: getNextDate('Daily'),
   });
 
-  // Update form if staffMember changes
-  useState(() => {
-    if (staffMember) {
-      setFormData(prev => ({
-        ...prev,
-        staff_id: staffMember.staff_id,
-      }));
-    }
+  // Fetch existing tasks to show in the dialog
+  const { data: existingTasks, isLoading: isLoadingTasks, refetch } = useQuery({
+    queryKey: ['staff-tasks', staffMember?.staff_id],
+    queryFn: async () => {
+      if (!staffMember) return [];
+
+      try {
+        const { data, error } = await supabase
+          .from('housekeeping')
+          .select('*')
+          .eq('staff_id', staffMember.staff_id)
+          .order('cleaning_date', { ascending: false });
+        
+        if (error) {
+          console.error('Error fetching tasks:', error);
+          return [];
+        }
+        
+        return data;
+      } catch (err) {
+        console.error('Error in query:', err);
+        return [];
+      }
+    },
+    enabled: !!staffMember,
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -66,69 +66,57 @@ const AssignTaskDialog = ({ open, onOpenChange, staffMember }: AssignTaskDialogP
   };
 
   const handleSelectChange = (field: string, value: string) => {
-    setFormData(prev => ({ 
-      ...prev, 
-      [field]: value,
-      // Update next_scheduled based on frequency
-      ...(field === 'frequency' ? { next_scheduled: getNextDate(value) } : {})
-    }));
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!staffMember) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "No staff member selected.",
-      });
-      return;
-    }
+    if (!staffMember) return;
     
     setIsSubmitting(true);
     
     try {
-      // Map form data to match housekeeping table structure
-      const houseKeepingData = {
-        service_type: formData.task_description, // Use task description as service type
-        cleaning_date: formData.cleaning_date,
-        cleaning_status: formData.cleaning_status,
+      const housekeepingData = {
+        service_type: formData.task_type,
         staff_id: staffMember.staff_id,
+        resident_id: 1, // Set a default or fetch from resident selection
+        cleaning_date: new Date().toISOString(),
+        cleaning_status: 'Assigned',
+        area: formData.area,
+        task_description: formData.description,
+        frequency: formData.frequency,
+        last_completed: null,
+        next_scheduled: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Next day
       };
 
-      // Try to add task to Supabase
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('housekeeping')
-        .insert(houseKeepingData)
-        .select();
+        .insert(housekeepingData);
 
-      if (error) {
-        if (error.message.includes("does not exist")) {
-          // Show success toast even with mock data
-          toast({
-            title: "Task Assigned",
-            description: `Task has been assigned to ${staffMember.name} successfully.`,
-          });
-          onOpenChange(false);
-          return;
-        }
-        throw error;
-      }
-
+      if (error) throw error;
+      
       toast({
         title: "Task Assigned",
-        description: `Task has been assigned to ${staffMember.name} successfully.`,
+        description: `Task assigned successfully to ${staffMember.name}`,
       });
       
-      // Close dialog
+      refetch();
+      
+      // Reset form
+      setFormData({
+        task_type: 'Regular Cleaning',
+        area: 'Common Area',
+        description: '',
+        frequency: 'Daily',
+      });
+      
       onOpenChange(false);
-    } catch (err) {
-      console.error("Error assigning task:", err);
+    } catch (error: any) {
+      console.error('Error assigning task:', error);
       toast({
         variant: "destructive",
-        title: "Failed to assign task",
-        description: "There was an error assigning the task. Please try again.",
+        title: "Error",
+        description: error.message || "Failed to assign task. Please try again.",
       });
     } finally {
       setIsSubmitting(false);
@@ -139,95 +127,96 @@ const AssignTaskDialog = ({ open, onOpenChange, staffMember }: AssignTaskDialogP
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Assign Task to {staffMember?.name || 'Staff'}</DialogTitle>
+          <DialogTitle>Assign Task to {staffMember?.name}</DialogTitle>
           <DialogDescription>
-            Enter task details below to assign to {staffMember?.name}.
+            Assign a new task to this staff member.
           </DialogDescription>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4 py-4">
-          <div className="grid gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="area">Area</Label>
-              <Input 
-                id="area" 
-                name="area" 
-                placeholder="Main Lobby" 
-                value={formData.area} 
-                onChange={handleChange} 
-                required 
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="task_description">Task Description</Label>
-              <Textarea 
-                id="task_description" 
-                name="task_description" 
-                placeholder="Detailed description of the task" 
-                value={formData.task_description} 
-                onChange={handleChange} 
-                required 
-                className="min-h-[80px]"
-              />
-            </div>
+          <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="frequency">Frequency</Label>
+                <Label htmlFor="task_type">Task Type</Label>
                 <Select 
-                  value={formData.frequency} 
-                  onValueChange={(value) => handleSelectChange('frequency', value)}
+                  value={formData.task_type} 
+                  onValueChange={(value) => handleSelectChange('task_type', value)}
                 >
-                  <SelectTrigger id="frequency">
-                    <SelectValue placeholder="Select frequency" />
+                  <SelectTrigger id="task_type">
+                    <SelectValue placeholder="Select task type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Daily">Daily</SelectItem>
-                    <SelectItem value="Weekly">Weekly</SelectItem>
-                    <SelectItem value="Bi-weekly">Bi-weekly</SelectItem>
-                    <SelectItem value="Monthly">Monthly</SelectItem>
+                    <SelectItem value="Regular Cleaning">Regular Cleaning</SelectItem>
+                    <SelectItem value="Deep Cleaning">Deep Cleaning</SelectItem>
+                    <SelectItem value="Maintenance">Maintenance</SelectItem>
+                    <SelectItem value="Security">Security</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="cleaning_status">Status</Label>
+                <Label htmlFor="area">Area</Label>
                 <Select 
-                  value={formData.cleaning_status} 
-                  onValueChange={(value) => handleSelectChange('cleaning_status', value)}
+                  value={formData.area} 
+                  onValueChange={(value) => handleSelectChange('area', value)}
                 >
-                  <SelectTrigger id="cleaning_status">
-                    <SelectValue placeholder="Select status" />
+                  <SelectTrigger id="area">
+                    <SelectValue placeholder="Select area" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Scheduled">Scheduled</SelectItem>
-                    <SelectItem value="In Progress">In Progress</SelectItem>
-                    <SelectItem value="Completed">Completed</SelectItem>
+                    <SelectItem value="Common Area">Common Area</SelectItem>
+                    <SelectItem value="Swimming Pool">Swimming Pool</SelectItem>
+                    <SelectItem value="Gym">Gym</SelectItem>
+                    <SelectItem value="Garden">Garden</SelectItem>
+                    <SelectItem value="Parking">Parking</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="cleaning_date">Cleaning Date</Label>
-                <Input 
-                  id="cleaning_date" 
-                  name="cleaning_date" 
-                  type="date" 
-                  value={formData.cleaning_date} 
-                  onChange={handleChange} 
-                  required 
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="next_scheduled">Next Scheduled</Label>
-                <Input 
-                  id="next_scheduled" 
-                  name="next_scheduled" 
-                  type="date" 
-                  value={formData.next_scheduled} 
-                  onChange={handleChange} 
-                  required 
-                />
               </div>
             </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="description">Task Description</Label>
+              <Input 
+                id="description" 
+                name="description" 
+                placeholder="Describe the task in detail" 
+                value={formData.description} 
+                onChange={handleChange} 
+                required 
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="frequency">Frequency</Label>
+              <Select 
+                value={formData.frequency} 
+                onValueChange={(value) => handleSelectChange('frequency', value)}
+              >
+                <SelectTrigger id="frequency">
+                  <SelectValue placeholder="Select frequency" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Daily">Daily</SelectItem>
+                  <SelectItem value="Weekly">Weekly</SelectItem>
+                  <SelectItem value="Monthly">Monthly</SelectItem>
+                  <SelectItem value="One-time">One-time</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
+          
+          {existingTasks && existingTasks.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="text-sm font-medium">Current Tasks</h4>
+              <div className="max-h-32 overflow-y-auto border rounded-md p-2">
+                {existingTasks.map((task: any, index: number) => (
+                  <div key={index} className="text-sm py-1 border-b last:border-b-0">
+                    <span className="font-medium">{task.service_type}</span>: {task.task_description || 'No description'} 
+                    <span className="text-muted-foreground text-xs block">{new Date(task.cleaning_date).toLocaleDateString()}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           
           <DialogFooter className="pt-4">
             <Button 
@@ -238,7 +227,7 @@ const AssignTaskDialog = ({ open, onOpenChange, staffMember }: AssignTaskDialogP
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={isSubmitting || !staffMember}>
               {isSubmitting ? 'Assigning...' : 'Assign Task'}
             </Button>
           </DialogFooter>
