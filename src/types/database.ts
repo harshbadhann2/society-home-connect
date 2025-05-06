@@ -71,6 +71,8 @@ export interface Housekeeping {
   next_scheduled?: string;
   // For compatibility with existing code
   assigned_staff?: number;
+  status?: string;
+  id?: number;
 }
 
 export interface Notice {
@@ -510,5 +512,84 @@ export const mockComplaints = [
     category: 'Cleanliness',
     status: 'Pending',
     date_filed: '2025-05-02'
+  }
+];
+
+// Add the missing mockHousekeeping data
+export const mockHousekeeping: Housekeeping[] = [
+  {
+    housekeeping_id: 1,
+    service_type: "Regular Cleaning",
+    staff_id: 2, 
+    resident_id: 1,
+    cleaning_date: "2025-05-05",
+    cleaning_status: "Completed",
+    area: "Apartment",
+    task_description: "Weekly apartment cleaning",
+    frequency: "Weekly",
+    last_completed: "2025-04-28",
+    next_scheduled: "2025-05-12",
+    assigned_staff: 2,
+    id: 1
+  },
+  {
+    housekeeping_id: 2,
+    service_type: "Deep Cleaning",
+    staff_id: 2,
+    resident_id: 3,
+    cleaning_date: "2025-05-10",
+    cleaning_status: "Scheduled",
+    area: "Common Area",
+    task_description: "Monthly deep cleaning of lobby and corridors",
+    frequency: "Monthly",
+    last_completed: "2025-04-10",
+    next_scheduled: "2025-05-10",
+    assigned_staff: 2,
+    id: 2
+  },
+  {
+    housekeeping_id: 3,
+    service_type: "Window Cleaning",
+    staff_id: 4,
+    resident_id: 0, // No specific resident (common area)
+    cleaning_date: "2025-05-07",
+    cleaning_status: "In Progress", 
+    area: "Building Exterior",
+    task_description: "External window cleaning for all apartments",
+    frequency: "Quarterly",
+    last_completed: "2025-02-07",
+    next_scheduled: "2025-08-07",
+    assigned_staff: 4,
+    id: 3
+  },
+  {
+    housekeeping_id: 4,
+    service_type: "Carpet Cleaning",
+    staff_id: 2,
+    resident_id: 2,
+    cleaning_date: "2025-05-15",
+    cleaning_status: "Scheduled",
+    area: "Apartment",
+    task_description: "Deep carpet cleaning for apartment 202",
+    frequency: "Quarterly",
+    last_completed: "2025-02-15",
+    next_scheduled: "2025-08-15",
+    assigned_staff: 2,
+    id: 4
+  },
+  {
+    housekeeping_id: 5,
+    service_type: "Regular Cleaning",
+    staff_id: 3,
+    resident_id: 4,
+    cleaning_date: "2025-05-06",
+    cleaning_status: "Overdue",
+    area: "Apartment",
+    task_description: "Weekly apartment cleaning",
+    frequency: "Weekly",
+    last_completed: "2025-04-22",
+    next_scheduled: "2025-04-29",
+    assigned_staff: 3,
+    id: 5
   }
 ];
