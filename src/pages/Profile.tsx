@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useContext } from 'react';
 import Layout from '@/components/layout/layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -26,7 +25,6 @@ const Profile: React.FC = () => {
   // Start with either the current user or a default
   const [profile, setProfile] = useState(currentUser || mockResidents[0]);
   const [loading, setLoading] = useState(false);
-  const [fetchingData, setFetchingData] = useState(false);
   const [activeTab, setActiveTab] = useState('personal');
   const [formData, setFormData] = useState({
     name: currentUser?.name || mockResidents[0].name,
@@ -36,101 +34,19 @@ const Profile: React.FC = () => {
     address: `Flat ${currentUser?.apartment || mockResidents[0].apartment}, Nirvaan Heights, Mumbai, Maharashtra - 400076`
   });
   
-  // Fetch user data from Supabase when component mounts
+  // Update form data whenever current user changes
   useEffect(() => {
-    const fetchUserData = async () => {
-      if (!currentUser?.email) return;
-      
-      setFetchingData(true);
-      try {
-        if (userRole === 'resident' && currentUser.resident_id) {
-          // Fetch resident details
-          const { data, error } = await supabase
-            .from('resident')
-            .select('*, apartment(*)')
-            .eq('resident_id', currentUser.resident_id)
-            .single();
-          
-          if (error) {
-            console.error('Error fetching resident data:', error);
-            return;
-          }
-          
-          if (data) {
-            const residentData = {
-              id: data.resident_id,
-              name: data.name,
-              email: data.email,
-              contact: data.contact_number,
-              apartment: data.apartment?.apartment_number || currentUser.apartment || 'A101',
-              status: data.status,
-              resident_id: data.resident_id
-            };
-            
-            setProfile(residentData);
-            setFormData(prev => ({
-              ...prev,
-              name: residentData.name || prev.name,
-              email: residentData.email || prev.email,
-              contact: residentData.contact || prev.contact,
-              address: `Flat ${residentData.apartment}, Nirvaan Heights, Mumbai, Maharashtra - 400076`
-            }));
-          }
-        } else if (userRole === 'staff' && currentUser.id) {
-          // Fetch staff details
-          const { data, error } = await supabase
-            .from('staff')
-            .select('*')
-            .eq('staff_id', currentUser.id)
-            .single();
-          
-          if (error) {
-            console.error('Error fetching staff data:', error);
-            return;
-          }
-          
-          if (data) {
-            const staffData = {
-              id: data.staff_id,
-              name: data.name,
-              email: currentUser.email,
-              contact: data.contact_number,
-              position: data.position || data.role,
-              status: 'Active',
-            };
-            
-            setProfile(staffData);
-            setFormData(prev => ({
-              ...prev,
-              name: staffData.name || prev.name,
-              email: staffData.email || prev.email,
-              contact: staffData.contact || prev.contact,
-              address: `Staff Quarters, Nirvaan Heights, Mumbai, Maharashtra - 400076`
-            }));
-          }
-        }
-      } catch (error) {
-        console.error('Error in fetchUserData:', error);
-      } finally {
-        setFetchingData(false);
-      }
-    };
-    
-    fetchUserData();
-  }, [currentUser, userRole]);
-  
-  // Update form data whenever profile changes
-  useEffect(() => {
-    if (profile) {
+    if (currentUser) {
+      setProfile(currentUser);
       setFormData(prev => ({
         ...prev,
-        name: profile.name || prev.name,
-        email: profile.email || prev.email,
-        contact: profile.contact || prev.contact,
-        address: `Flat ${profile.apartment || 'A101'}, Nirvaan Heights, Mumbai, Maharashtra - 400076`
+        name: currentUser.name || prev.name,
+        email: currentUser.email || prev.email,
+        contact: currentUser.contact || prev.contact,
+        address: `Flat ${currentUser.apartment || 'A101'}, Nirvaan Heights, Mumbai, Maharashtra - 400076`
       }));
     }
-  }, [profile]);
+  }, [currentUser]);
   
   // Activity data for the activity tab
   const [activityData, setActivityData] = useState([
@@ -140,77 +56,6 @@ const Profile: React.FC = () => {
     { id: 4, type: 'Notice', description: 'Viewed society meeting notice', date: '2025-04-22' },
     { id: 5, type: 'Visitor', description: 'Guest arrived', date: '2025-04-20', name: 'Amit Kumar' }
   ]);
-  
-  // Fetch activity data
-  useEffect(() => {
-    const fetchActivityData = async () => {
-      if (!currentUser?.resident_id) return;
-      
-      try {
-        // Fetch complaints
-        const { data: complaints, error: complaintsError } = await supabase
-          .from('complaint')
-          .select('*')
-          .eq('resident_id', currentUser.resident_id)
-          .order('date_raised', { ascending: false })
-          .limit(3);
-          
-        if (complaintsError) {
-          console.error('Error fetching complaints:', complaintsError);
-        }
-        
-        // Fetch maintenance payments
-        const { data: payments, error: paymentsError } = await supabase
-          .from('maintenance')
-          .select('*')
-          .eq('resident_id', currentUser.resident_id)
-          .order('payment_date', { ascending: false })
-          .limit(3);
-          
-        if (paymentsError) {
-          console.error('Error fetching payments:', paymentsError);
-        }
-        
-        // Create activity data from fetched data
-        const newActivities = [];
-        
-        if (complaints?.length) {
-          complaints.forEach((complaint, index) => {
-            newActivities.push({
-              id: 100 + index,
-              type: 'Complaint',
-              description: complaint.subject || 'Filed maintenance request',
-              date: complaint.date_raised || new Date().toISOString().split('T')[0],
-              status: complaint.complaint_status || 'Pending'
-            });
-          });
-        }
-        
-        if (payments?.length) {
-          payments.forEach((payment, index) => {
-            newActivities.push({
-              id: 200 + index,
-              type: 'Payment',
-              description: 'Maintenance Fee Paid',
-              date: payment.payment_date || new Date().toISOString().split('T')[0],
-              amount: `₹${payment.amount}`
-            });
-          });
-        }
-        
-        // If we have real data, replace the mock data
-        if (newActivities.length > 0) {
-          newActivities.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-          setActivityData(newActivities.slice(0, 5));
-        }
-        
-      } catch (error) {
-        console.error('Error fetching activity data:', error);
-      }
-    };
-    
-    fetchActivityData();
-  }, [currentUser]);
   
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
@@ -225,29 +70,13 @@ const Profile: React.FC = () => {
     setLoading(true);
     
     try {
-      // Update user information in Supabase
-      if (userRole === 'resident' && currentUser?.resident_id) {
-        const { error } = await supabase
-          .from('resident')
-          .update({ 
-            name: formData.name,
-            email: formData.email,
-            contact_number: formData.contact
-          })
-          .eq('resident_id', currentUser.resident_id);
-          
-        if (error) throw error;
-      } else if (userRole === 'staff' && currentUser?.id) {
-        const { error } = await supabase
-          .from('staff')
-          .update({ 
-            name: formData.name,
-            contact_number: formData.contact
-          })
-          .eq('staff_id', currentUser.id);
-          
-        if (error) throw error;
-      }
+      // In a real application, this would update the data in Supabase
+      // const { data, error } = await supabase
+      //   .from('residents')
+      //   .update({ name: formData.name, email: formData.email, contact: formData.contact })
+      //   .eq('id', profile.id);
+      
+      // if (error) throw error;
       
       // Simulate successful update
       setProfile(prev => ({
@@ -285,19 +114,6 @@ const Profile: React.FC = () => {
     }
   };
   
-  if (fetchingData) {
-    return (
-      <Layout>
-        <div className="flex items-center justify-center h-[60vh]">
-          <div className="text-center space-y-4">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary border-r-2 mx-auto"></div>
-            <p>Loading your profile data...</p>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
-  
   return (
     <Layout>
       <div className="space-y-6">
@@ -320,7 +136,7 @@ const Profile: React.FC = () => {
                 <div className="mt-6 space-y-1 text-center">
                   <h3 className="font-medium text-lg">{profile.name}</h3>
                   <p className="text-sm text-muted-foreground">
-                    {profile.status} • {profile.apartment || userRole}
+                    {profile.status} • {profile.apartment}
                   </p>
                 </div>
 
@@ -339,11 +155,11 @@ const Profile: React.FC = () => {
               <CardContent className="space-y-4">
                 <div className="flex items-center">
                   <UserRound className="h-4 w-4 mr-2 text-muted-foreground" />
-                  <span className="text-sm">{userRole === 'admin' ? 'Administrator' : userRole === 'staff' ? 'Staff Member' : 'Resident'}</span>
+                  <span className="text-sm">Member since 2022</span>
                 </div>
                 <div className="flex items-center">
                   <BadgeIndianRupee className="h-4 w-4 mr-2 text-muted-foreground" />
-                  <span className="text-sm">{userRole === 'resident' ? 'All dues cleared' : 'Salary processed'}</span>
+                  <span className="text-sm">All dues cleared</span>
                 </div>
                 <div className="flex items-center">
                   <BellRing className="h-4 w-4 mr-2 text-muted-foreground" />
@@ -369,19 +185,19 @@ const Profile: React.FC = () => {
                 <Button variant="outline" className="justify-start" asChild>
                   <Link to="/complaints">
                     <MessageSquare className="mr-2 h-4 w-4" />
-                    {userRole === 'resident' ? 'My Complaints' : 'Manage Complaints'}
+                    My Complaints
                   </Link>
                 </Button>
                 <Button variant="outline" className="justify-start" asChild>
                   <Link to="/payments">
                     <CreditCard className="mr-2 h-4 w-4" />
-                    {userRole === 'resident' ? 'Payment History' : 'Payment Management'}
+                    Payment History
                   </Link>
                 </Button>
                 <Button variant="outline" className="justify-start" asChild>
                   <Link to="/amenities">
                     <Bed className="mr-2 h-4 w-4" />
-                    {userRole === 'resident' ? 'Book Amenities' : 'Manage Amenities'}
+                    Book Amenities
                   </Link>
                 </Button>
                 <Button variant="outline" className="justify-start" asChild>
@@ -579,7 +395,7 @@ const Profile: React.FC = () => {
                             <div className="flex items-center justify-between">
                               <p className="font-medium">{activity.description}</p>
                               <p className="text-sm text-muted-foreground">
-                                {activity.date ? format(new Date(activity.date), 'MMM d, yyyy') : ''}
+                                {format(new Date(activity.date), 'MMM d, yyyy')}
                               </p>
                             </div>
                             <p className="text-sm text-muted-foreground">

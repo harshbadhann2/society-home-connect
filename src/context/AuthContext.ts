@@ -8,7 +8,6 @@ export interface UserInfo {
   contact?: string;
   apartment?: string;
   status?: string;
-  resident_id?: number; // Adding this to store Supabase resident_id
 }
 
 interface AuthContextType {

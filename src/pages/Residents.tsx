@@ -1,5 +1,5 @@
 
-import React, { useState, useContext } from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Layout from '@/components/layout/layout';
 import { Button } from '@/components/ui/button';
@@ -26,15 +26,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { Resident, mockResidents } from '@/types/database';
 import { toast } from '@/components/ui/use-toast';
 import AddResidentDialog from '@/components/dialogs/AddResidentDialog';
-import AuthContext from '@/context/AuthContext';
 
 const Residents: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const { userRole } = useContext(AuthContext);
-  
-  // Only admins and staff can see all residents
-  const canViewAllResidents = userRole === 'admin' || userRole === 'staff';
 
   // Fetch residents data from Supabase
   const { data: residents, isLoading, error, refetch } = useQuery({
@@ -43,7 +38,7 @@ const Residents: React.FC = () => {
       try {
         // Try to get data from Supabase
         const { data, error } = await supabase
-          .from('resident')
+          .from('residents')
           .select('*');
         
         if (error) {
@@ -58,7 +53,7 @@ const Residents: React.FC = () => {
               
               // Try fetching again after creation
               const { data: newData, error: newError } = await supabase
-                .from('resident')
+                .from('residents')
                 .select('*');
                 
               if (newError) {
@@ -86,9 +81,9 @@ const Residents: React.FC = () => {
 
   // Handle search functionality
   const filteredResidents = residents?.filter(resident =>
-    resident.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    resident.apartment?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    resident.email?.toLowerCase().includes(searchTerm.toLowerCase())
+    resident.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    resident.apartment.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    resident.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Show error toast if fetching fails
@@ -103,22 +98,13 @@ const Residents: React.FC = () => {
   }, [error]);
 
   const handleAddResident = async (newResident: Omit<Resident, 'id' | 'created_at'>) => {
-    if (!canViewAllResidents) {
-      toast({
-        title: "Permission Denied",
-        description: "You don't have permission to add residents.",
-        variant: "destructive",
-      });
-      return false;
-    }
-    
     try {
       console.log("Attempting to add resident:", newResident);
       
       // First, check if we need to create the table
       try {
         const { data: checkData, error: checkError } = await supabase
-          .from('resident')
+          .from('residents')
           .select('count')
           .limit(1);
           
@@ -133,15 +119,8 @@ const Residents: React.FC = () => {
       
       // Try to add to Supabase
       const { data, error } = await supabase
-        .from('resident')
-        .insert([{ 
-          name: newResident.name,
-          email: newResident.email,
-          contact_number: newResident.contact,
-          apartment_id: parseInt(newResident.apartment),
-          status: newResident.status,
-          joining_date: new Date().toISOString().split('T')[0]
-        }])
+        .from('residents')
+        .insert([{ ...newResident, created_at: new Date().toISOString() }])
         .select();
 
       if (error) {
@@ -179,26 +158,6 @@ const Residents: React.FC = () => {
     }
   };
 
-  // If the user is not an admin or staff, show an access denied message
-  if (!canViewAllResidents) {
-    return (
-      <Layout>
-        <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
-          <div className="rounded-full p-4 bg-red-100">
-            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-red-500">
-              <path d="M18 6 6 18" /><path d="m6 6 12 12" />
-            </svg>
-          </div>
-          <h2 className="text-2xl font-bold">Access Denied</h2>
-          <p className="text-muted-foreground text-center max-w-md">
-            You don't have permission to view the residents directory. Please contact an administrator for assistance.
-          </p>
-          <Button variant="outline" onClick={() => window.history.back()}>Go Back</Button>
-        </div>
-      </Layout>
-    );
-  }
-
   return (
     <Layout>
       <div className="space-y-6 animate-fade-in">
@@ -209,11 +168,9 @@ const Residents: React.FC = () => {
               Manage residents and their information
             </p>
           </div>
-          {(userRole === 'admin') && (
-            <Button onClick={() => setIsAddDialogOpen(true)}>
-              <UserPlus className="mr-2 h-4 w-4" /> Add Resident
-            </Button>
-          )}
+          <Button onClick={() => setIsAddDialogOpen(true)}>
+            <UserPlus className="mr-2 h-4 w-4" /> Add Resident
+          </Button>
         </div>
 
         <Card>

@@ -16,7 +16,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import AuthContext from '@/context/AuthContext';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
-import { supabase } from '@/integrations/supabase/client';
 
 const Header: React.FC = () => {
   const isMobile = useIsMobile();
