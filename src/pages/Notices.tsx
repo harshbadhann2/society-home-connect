@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Layout from '@/components/layout/layout';
 import { Button } from '@/components/ui/button';
@@ -80,14 +79,23 @@ const Notices: React.FC = () => {
     queryKey: ['notices'],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase.from('notices').select('*');
+        const { data, error } = await supabase.from('notice_board').select('*');
         
         if (error) {
           console.error('Supabase error:', error);
           return mockNotices;
         }
         
-        return (data || []) as Notice[];
+        return data.map(item => ({
+          notice_id: item.notice_id,
+          title: item.title || '',
+          message: item.message || '',
+          posted_by: item.posted_by || '',
+          posted_date: item.posted_date || '',
+          priority: item.priority || 'Normal',
+          // Compatibility fields
+          id: item.notice_id,
+        })) as Notice[];
       } catch (err) {
         console.error('Error fetching notices:', err);
         return mockNotices;

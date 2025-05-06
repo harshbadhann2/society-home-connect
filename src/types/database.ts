@@ -33,12 +33,12 @@ export interface Resident {
 export interface Staff {
   staff_id: number;
   name: string;
-  position: string;
+  position?: string;
+  role?: string; // Added for compatibility with database schema
   contact_number: string;
   email?: string;
   joining_date: string;
   status?: string;
-  role?: string;
   // For compatibility with existing code
   contact?: string;
   id?: number;
