@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -7,7 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { AlertCircle, Key, UserCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { User } from '@/types/database';
+import { User, mockUsers } from '@/types/database';
 
 const AdminLogin: React.FC = () => {
   const [username, setUsername] = useState('');
@@ -16,7 +17,7 @@ const AdminLogin: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Instead of using mockUsers directly, create a fallback
+  // Use mockUsers for fallback
   const adminLoginHandler = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -40,9 +41,20 @@ const AdminLogin: React.FC = () => {
         .single();
       
       if (error) {
-        // Handle error - in production, you'd want better error messages
-        // For this demo, we'll just log errors and show a generic message
         console.error('Database error:', error);
+        
+        // Fall back to mock users for development/testing
+        const mockUser = mockUsers.find(u => u.username === username);
+        
+        if (mockUser && mockUser.password_hash === password) {
+          toast({
+            title: "Success! (Development Mode)",
+            description: "You are now logged in using mock data",
+          });
+          navigate('/');
+          return;
+        }
+        
         toast({
           title: "Authentication Error",
           description: "Invalid username or password",

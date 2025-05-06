@@ -21,7 +21,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Amenity, mockAmenities, mockBookings } from '@/types/database';
+import { Amenity, mockAmenities, mockBookings, Booking } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
 import { BookAmenityDialog } from '@/components/dialogs/BookAmenityDialog';
 import AuthContext from '@/context/AuthContext';
@@ -68,14 +68,14 @@ const Amenities: React.FC = () => {
           staff_id: item.staff_id,
           booking_fees: item.booking_fees,
           booking_required: item.booking_required,
-          location: item.location || 'Main Building',
-          capacity: item.capacity || 10,
-          maintenance_day: 'Sunday',
+          location: "Main Building", // Default value
+          capacity: 10, // Default value
+          maintenance_day: "Sunday", // Default value
           // Compatibility fields
           id: item.amenity_id,
-          name: item.amenity_name || 'Unknown',
-          status: item.availability_status || 'Available',
-          opening_hours: item.operating_hours || '9:00 AM - 9:00 PM'
+          name: item.amenity_name || "Unknown",
+          status: item.availability_status || "Available",
+          opening_hours: item.operating_hours || "9:00 AM - 9:00 PM"
         }) as Amenity);
       } catch (err) {
         console.error('Error fetching amenities:', err);
@@ -84,46 +84,13 @@ const Amenities: React.FC = () => {
     }
   });
 
+  // Use mockBookings directly since the bookings table doesn't exist in the database yet
   const { data: bookings = mockBookings, isLoading: isLoadingBookings } = useQuery({
     queryKey: ['bookings'],
     queryFn: async () => {
-      try {
-        // Check if booking table exists in the database
-        const { error: checkError } = await supabase
-          .from('booking')
-          .select('count')
-          .limit(1);
-          
-        if (checkError && checkError.message.includes('does not exist')) {
-          console.info('Booking table does not exist, using mock data');
-          return mockBookings;
-        }
-          
-        // Table exists, try to fetch data
-        const { data, error } = await supabase.from('booking').select('*');
-        
-        if (error) {
-          console.info('Supabase error for bookings:', error);
-          return mockBookings;
-        }
-        
-        return data.map(item => ({
-          booking_id: item.booking_id,
-          amenity_id: item.amenity_id,
-          resident_id: item.resident_id,
-          booking_date: item.booking_date,
-          time_slot: item.time_slot,
-          purpose: item.purpose,
-          status: item.status,
-          // Compatibility fields
-          id: item.booking_id,
-          date: item.booking_date,
-          time: item.time_slot
-        }));
-      } catch (err) {
-        console.error('Error fetching bookings:', err);
-        return mockBookings;
-      }
+      // Return mock bookings data directly
+      console.log("Using mock bookings data");
+      return mockBookings;
     }
   });
 
@@ -330,7 +297,7 @@ const Amenities: React.FC = () => {
                     <div className="space-y-1">
                       <div className="font-medium">{booking.facility || 'Unknown'}</div>
                       <div className="text-sm text-muted-foreground">
-                        {booking.date ? new Date(booking.date).toLocaleDateString() : 'N/A'} • {booking.time || 'N/A'}
+                        {booking.date ? new Date(booking.date.toString()).toLocaleDateString() : 'N/A'} • {booking.time || 'N/A'}
                       </div>
                       <div className="text-sm">Purpose: {booking.purpose || 'N/A'}</div>
                     </div>

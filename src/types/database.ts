@@ -411,7 +411,7 @@ export const mockUsers: User[] = [
   }
 ];
 
-export const mockBookings = [
+export const mockBookings: Booking[] = [
   {
     booking_id: 1,
     amenity_id: 1,
