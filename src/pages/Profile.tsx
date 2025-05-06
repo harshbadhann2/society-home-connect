@@ -5,7 +5,7 @@ import Layout from '@/components/layout/layout';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Staff, Resident, User, mockStaff, mockResidents, mockUsers } from '@/types/database';
+import { Staff, Resident, mockStaff, mockResidents, mockUsers } from '@/types/database';
 import AuthContext from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -22,7 +22,7 @@ import {
   Phone,
   Calendar,
   Home,
-  User as UserIcon,
+  UserRound as User,
   Shield,
   Key,
   Settings,
@@ -113,7 +113,7 @@ const Profile: React.FC = () => {
               name: data.name,
               email: currentUser.email,
               contact: data.contact_number,
-              position: data.role || data.position, // Map role to position
+              position: data.role || "Staff", // Map role to position
               status: 'Active',
             };
             
@@ -298,7 +298,7 @@ const Profile: React.FC = () => {
       case 'Payment': return <CreditCard className="h-5 w-5 text-green-500" />;
       case 'Complaint': return <MessageSquare className="h-5 w-5 text-red-500" />;
       case 'Notice': return <FileText className="h-5 w-5 text-purple-500" />;
-      case 'Visitor': return <UserIcon className="h-5 w-5 text-orange-500" />;
+      case 'Visitor': return <UserRound className="h-5 w-5 text-orange-500" />;
       default: return <Calendar className="h-5 w-5 text-gray-500" />;
     }
   };
@@ -326,6 +326,7 @@ const Profile: React.FC = () => {
           </p>
         </div>
 
+        {/* Profile grid layout */}
         <div className="grid gap-6 md:grid-cols-[250px_1fr]">
           <div className="space-y-6">
             <Card>

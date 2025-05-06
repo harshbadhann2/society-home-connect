@@ -1,4 +1,3 @@
-
 import React, { useState, useContext, useEffect } from 'react';
 import Layout from '@/components/layout/layout';
 import { useToast } from '@/hooks/use-toast';
@@ -120,13 +119,16 @@ const Settings: React.FC = () => {
         }
         
         if (userRole === 'resident') {
+          // Check if userData has resident_id directly or via id property
+          const residentId = (userData as any).resident_id || userData.id;
+          
           const { data, error } = await supabase
             .from('resident')
             .update({
               name: updatedSettings.name,
               email: updatedSettings.email,
             })
-            .eq('resident_id', userData.resident_id || userData.id)
+            .eq('resident_id', residentId)
             .select();
           
           if (error) throw error;
@@ -134,13 +136,16 @@ const Settings: React.FC = () => {
         }
         
         if (userRole === 'staff') {
+          // Check if userData has staff_id directly or via id property
+          const staffId = (userData as any).staff_id || userData.id;
+          
           const { data, error } = await supabase
             .from('staff')
             .update({
               name: updatedSettings.name,
               email: updatedSettings.email,
             })
-            .eq('staff_id', userData.staff_id || userData.id)
+            .eq('staff_id', staffId)
             .select();
           
           if (error) throw error;

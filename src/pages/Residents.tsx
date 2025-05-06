@@ -1,4 +1,3 @@
-
 import React, { useState, useContext } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Layout from '@/components/layout/layout';
@@ -52,8 +51,8 @@ const Residents: React.FC = () => {
           // Create the table if it doesn't exist
           if (error.message.includes("does not exist")) {
             try {
-              // Try to create the table with proper schema
-              const createTableResult = await supabase.rpc('create_residents_table_if_not_exists');
+              // Try to create the table with proper schema - using a type assertion for the RPC call
+              const createTableResult = await supabase.rpc('create_residents_table_if_not_exists' as any);
               console.log("Table creation result:", createTableResult);
               
               // Try fetching again after creation
@@ -98,7 +97,7 @@ const Residents: React.FC = () => {
   // Handle search functionality
   const filteredResidents = residents?.filter(resident =>
     resident.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (resident.apartment?.toString() || '').includes(searchTerm.toLowerCase()) ||
+    (resident.apartment?.toString() || '').includes(searchTerm) ||
     (resident.email || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -134,8 +133,8 @@ const Residents: React.FC = () => {
           .limit(1);
           
         if (checkError && checkError.message.includes("does not exist")) {
-          // Table doesn't exist, create it
-          await supabase.rpc('create_residents_table_if_not_exists');
+          // Table doesn't exist, create it - using type assertion for the RPC call
+          await supabase.rpc('create_residents_table_if_not_exists' as any);
           console.log("Created residents table");
         }
       } catch (checkErr) {

@@ -153,6 +153,7 @@ export interface User {
   created_at?: string;
   // For compatibility with existing code
   password?: string; // For login components
+  id?: number; // Adding id for compatibility
 }
 
 // Define a simplified apartment interface to match the database schema
