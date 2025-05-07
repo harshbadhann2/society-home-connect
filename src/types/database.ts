@@ -58,4 +58,139 @@ export const mockAmenities: Amenity[] = [
   }
 ];
 
+// Define interfaces for users
+export interface User {
+  id: number;
+  username: string;
+  email: string;
+  password: string;
+  role: string;
+}
+
+export interface Resident {
+  id: number;
+  name: string;
+  email: string;
+  contact: string;
+  apartment: string;
+  status: string;
+  resident_id?: number;
+}
+
+export interface Staff {
+  id: number;
+  name: string;
+  email: string;
+  contact: string;
+  role: string;
+  status: string;
+}
+
+// Mock users for development/fallback
+export const mockUsers: User[] = [
+  {
+    id: 1,
+    username: "admin1",
+    email: "admin@nirvaanheights.com",
+    password: "admin123",
+    role: "admin"
+  },
+  {
+    id: 2,
+    username: "staff1",
+    email: "sunil.kumar@example.com",
+    password: "staff123",
+    role: "staff"
+  },
+  {
+    id: 3,
+    username: "resident1",
+    email: "rajesh.sharma@example.com",
+    password: "resident123",
+    role: "resident"
+  },
+  {
+    id: 4,
+    username: "pooja",
+    email: "pooja.yadav@example.com",
+    password: "staff123",
+    role: "staff"
+  },
+  {
+    id: 5,
+    username: "amit",
+    email: "amit.singh@example.com",
+    password: "resident123",
+    role: "resident"
+  }
+];
+
+// Mock residents data
+export const mockResidents: Resident[] = [
+  {
+    id: 1,
+    name: "Rajesh Sharma",
+    email: "rajesh.sharma@example.com",
+    contact: "+91 98765 43210",
+    apartment: "A101",
+    status: "Active",
+    resident_id: 101
+  },
+  {
+    id: 2,
+    name: "Amit Singh",
+    email: "amit.singh@example.com",
+    contact: "+91 87654 32109",
+    apartment: "B202",
+    status: "Active",
+    resident_id: 102
+  },
+  {
+    id: 3,
+    name: "Ravi Mehta",
+    email: "ravi.mehta@example.com",
+    contact: "+91 76543 21098",
+    apartment: "C303",
+    status: "Active",
+    resident_id: 103
+  },
+  {
+    id: 4,
+    name: "Neha Verma",
+    email: "neha.verma@example.com",
+    contact: "+91 65432 10987",
+    apartment: "D404",
+    status: "Active",
+    resident_id: 104
+  }
+];
+
+// Mock staff data
+export const mockStaff: Staff[] = [
+  {
+    id: 1,
+    name: "Sunil Kumar",
+    email: "sunil.kumar@example.com",
+    contact: "+91 54321 09876",
+    role: "Cleaner",
+    status: "Active"
+  },
+  {
+    id: 2,
+    name: "Pooja Yadav",
+    email: "pooja.yadav@example.com",
+    contact: "+91 43210 98765",
+    role: "Security",
+    status: "Active"
+  },
+  {
+    id: 3,
+    name: "Rajeev Kumar",
+    email: "rajeev.kumar@example.com",
+    contact: "+91 32109 87654",
+    role: "Gardener",
+    status: "Active"
+  }
+];
+
 // Additional mock data types can be added here
