@@ -103,6 +103,13 @@ export interface Housekeeping {
   cleaning_date: string;
   cleaning_status: string;
   staff_id: number;
+  area?: string;
+  task_description?: string;
+  frequency?: string;
+  status?: string;
+  last_completed?: string;
+  next_scheduled?: string;
+  assigned_staff: number;
 }
 
 // Mock users for development/fallback
@@ -253,6 +260,85 @@ export const mockParking: Parking[] = [
     vehicle_number: "",
     resident_id: 0,
     status: "Reserved for Visitors"
+  }
+];
+
+// Mock housekeeping data
+export const mockHousekeeping: Housekeeping[] = [
+  {
+    id: 1,
+    resident_id: 1,
+    service_type: "Regular Cleaning",
+    cleaning_date: "2025-05-01",
+    cleaning_status: "Completed",
+    staff_id: 1,
+    area: "Block A Common Areas",
+    task_description: "Regular floor cleaning and dusting",
+    frequency: "Daily",
+    status: "Completed",
+    last_completed: "2025-05-01",
+    next_scheduled: "2025-05-02",
+    assigned_staff: 1
+  },
+  {
+    id: 2,
+    resident_id: 2,
+    service_type: "Deep Cleaning",
+    cleaning_date: "2025-05-03",
+    cleaning_status: "Scheduled",
+    staff_id: 1,
+    area: "Swimming Pool",
+    task_description: "Pool cleaning and chemical treatment",
+    frequency: "Weekly",
+    status: "Scheduled",
+    last_completed: "2025-04-25",
+    next_scheduled: "2025-05-03",
+    assigned_staff: 1
+  },
+  {
+    id: 3,
+    resident_id: 0,
+    service_type: "Gardening",
+    cleaning_date: "2025-05-02",
+    cleaning_status: "In Progress",
+    staff_id: 3,
+    area: "Central Garden",
+    task_description: "Lawn mowing and plant maintenance",
+    frequency: "Weekly",
+    status: "In Progress",
+    last_completed: "2025-04-25",
+    next_scheduled: "2025-05-02",
+    assigned_staff: 3
+  },
+  {
+    id: 4,
+    resident_id: 3,
+    service_type: "Apartment Cleaning",
+    cleaning_date: "2025-05-04",
+    cleaning_status: "Scheduled",
+    staff_id: 1,
+    area: "C303",
+    task_description: "Regular apartment cleaning",
+    frequency: "Weekly",
+    status: "Scheduled",
+    last_completed: "2025-04-27",
+    next_scheduled: "2025-05-04",
+    assigned_staff: 1
+  },
+  {
+    id: 5,
+    resident_id: 0,
+    service_type: "Equipment Maintenance",
+    cleaning_date: "2025-05-01",
+    cleaning_status: "Overdue",
+    staff_id: 2,
+    area: "Gym",
+    task_description: "Equipment inspection and maintenance",
+    frequency: "Monthly",
+    status: "Overdue",
+    last_completed: "2025-04-01",
+    next_scheduled: "2025-05-01",
+    assigned_staff: 2
   }
 ];
 
