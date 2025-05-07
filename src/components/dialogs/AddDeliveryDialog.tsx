@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { mockResidents } from "@/types/database";
 
 interface AddDeliveryDialogProps {
   open: boolean;
@@ -22,15 +23,15 @@ export function AddDeliveryDialog({ open, onOpenChange, onAdd }: AddDeliveryDial
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  const { data: residents } = useQuery({
+  const { data: residents, isError } = useQuery({
     queryKey: ["residents"],
     queryFn: async () => {
-      const { data, error } = await supabase.from('residents').select('id, name, apartment');
+      const { data, error } = await supabase.from('resident').select('resident_id, name, apartment_id');
       if (error) {
         console.error('Error fetching residents:', error);
-        return [];
+        return mockResidents;
       }
-      return data;
+      return data.length > 0 ? data : mockResidents;
     }
   });
 
@@ -47,13 +48,12 @@ export function AddDeliveryDialog({ open, onOpenChange, onAdd }: AddDeliveryDial
     setIsSubmitting(true);
     try {
       const { error } = await supabase
-        .from('deliveries')
+        .from('delivery_records')
         .insert({
           resident_id: residentId,
-          package_info: packageInfo,
-          courier_name: courier,
-          status: 'Received',
-          received_date: new Date().toISOString(),
+          courier_company_name: courier,
+          delivery_status: 'Received',
+          delivery_date: new Date().toISOString(),
         });
 
       if (error) throw error;
@@ -96,8 +96,8 @@ export function AddDeliveryDialog({ open, onOpenChange, onAdd }: AddDeliveryDial
               </SelectTrigger>
               <SelectContent>
                 {residents?.map((resident) => (
-                  <SelectItem key={resident.id} value={resident.id.toString()}>
-                    {resident.name} ({resident.apartment})
+                  <SelectItem key={resident.resident_id || resident.id} value={(resident.resident_id || resident.id).toString()}>
+                    {resident.name} ({resident.apartment || resident.apartment_id})
                   </SelectItem>
                 ))}
               </SelectContent>

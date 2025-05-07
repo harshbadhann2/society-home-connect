@@ -1,4 +1,3 @@
-
 // Mock data for development/fallback
 export interface Amenity {
   id: number;
@@ -84,6 +83,26 @@ export interface Staff {
   contact: string;
   role: string;
   status: string;
+}
+
+// Define interface for parking
+export interface Parking {
+  id: number;
+  spot_number: string;
+  vehicle_type: string;
+  vehicle_number: string;
+  resident_id: number;
+  status: string;
+}
+
+// Define interface for housekeeping
+export interface Housekeeping {
+  id: number;
+  resident_id: number;
+  service_type: string;
+  cleaning_date: string;
+  cleaning_status: string;
+  staff_id: number;
 }
 
 // Mock users for development/fallback
@@ -190,6 +209,50 @@ export const mockStaff: Staff[] = [
     contact: "+91 32109 87654",
     role: "Gardener",
     status: "Active"
+  }
+];
+
+// Mock parking data
+export const mockParking: Parking[] = [
+  {
+    id: 1,
+    spot_number: "A-01",
+    vehicle_type: "Car",
+    vehicle_number: "MH01AB1234",
+    resident_id: 1,
+    status: "Occupied"
+  },
+  {
+    id: 2,
+    spot_number: "A-02",
+    vehicle_type: "Bike",
+    vehicle_number: "MH01CD5678",
+    resident_id: 2,
+    status: "Occupied"
+  },
+  {
+    id: 3,
+    spot_number: "A-03",
+    vehicle_type: "",
+    vehicle_number: "",
+    resident_id: 0,
+    status: "Available"
+  },
+  {
+    id: 4,
+    spot_number: "B-01",
+    vehicle_type: "",
+    vehicle_number: "",
+    resident_id: 0,
+    status: "Available"
+  },
+  {
+    id: 5,
+    spot_number: "V-01",
+    vehicle_type: "",
+    vehicle_number: "",
+    resident_id: 0,
+    status: "Reserved for Visitors"
   }
 ];
 

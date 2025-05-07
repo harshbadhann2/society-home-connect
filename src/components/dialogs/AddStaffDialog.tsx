@@ -26,7 +26,7 @@ const AddStaffDialog = ({ open, onOpenChange, onAdd }: AddStaffDialogProps) => {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     name: '',
-    position: 'Security',
+    role: 'Security',
     contact: '',
     email: '',
     joining_date: new Date().toISOString().split('T')[0],
@@ -80,7 +80,7 @@ const AddStaffDialog = ({ open, onOpenChange, onAdd }: AddStaffDialogProps) => {
       // Reset form and close dialog
       setFormData({
         name: '',
-        position: 'Security',
+        role: 'Security',
         contact: '',
         email: '',
         joining_date: new Date().toISOString().split('T')[0],
@@ -126,12 +126,12 @@ const AddStaffDialog = ({ open, onOpenChange, onAdd }: AddStaffDialogProps) => {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="position">Position</Label>
+              <Label htmlFor="role">Position</Label>
               <Select 
-                value={formData.position} 
-                onValueChange={(value) => handleSelectChange('position', value)}
+                value={formData.role} 
+                onValueChange={(value) => handleSelectChange('role', value)}
               >
-                <SelectTrigger id="position">
+                <SelectTrigger id="role">
                   <SelectValue placeholder="Select position" />
                 </SelectTrigger>
                 <SelectContent>
