@@ -30,6 +30,22 @@ const LoginPage: React.FC = () => {
   const { toast } = useToast();
   const { setIsAuthenticated, setUserRole, setCurrentUser } = useContext(AuthContext);
 
+  // Demo credentials that actually work
+  const demoCredentials = {
+    admin: {
+      username: 'admin1',
+      password: 'admin123'
+    },
+    staff: {
+      username: 'staff1',
+      password: 'staff123'
+    },
+    resident: {
+      username: 'resident1',
+      password: 'resident123'
+    }
+  };
+
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -451,22 +467,22 @@ const LoginPage: React.FC = () => {
               Contact admin for help with login credentials
             </p>
             <div className="bg-black/30 p-3 rounded-lg w-full text-sm text-white/90">
-              <p className="font-bold mb-1 text-center text-primary">Demo Credentials</p>
+              <p className="font-bold mb-1 text-center text-primary">Valid Login Credentials</p>
               <div className="grid grid-cols-3 gap-2 text-xs">
                 <div>
                   <p className="font-semibold">Admin</p>
-                  <p>Username: admin1</p>
-                  <p>Password: admin123</p>
+                  <p>Username: {demoCredentials.admin.username}</p>
+                  <p>Password: {demoCredentials.admin.password}</p>
                 </div>
                 <div>
                   <p className="font-semibold">Staff</p>
-                  <p>Username: staff1</p>
-                  <p>Password: staff123</p>
+                  <p>Username: {demoCredentials.staff.username}</p>
+                  <p>Password: {demoCredentials.staff.password}</p>
                 </div>
                 <div>
                   <p className="font-semibold">Resident</p>
-                  <p>Username: resident1</p>
-                  <p>Password: resident123</p>
+                  <p>Username: {demoCredentials.resident.username}</p>
+                  <p>Password: {demoCredentials.resident.password}</p>
                 </div>
               </div>
             </div>
