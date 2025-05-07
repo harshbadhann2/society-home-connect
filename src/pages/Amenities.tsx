@@ -21,7 +21,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Amenity, mockAmenities, mockBookings, Booking } from '@/types/database';
+import { Amenity, mockAmenities } from '@/types/database';
 import { useToast } from '@/hooks/use-toast';
 import { BookAmenityDialog } from '@/components/dialogs/BookAmenityDialog';
 import AuthContext from '@/context/AuthContext';
@@ -40,6 +40,46 @@ const getStatusColor = (status: string) => {
       return 'bg-gray-100 text-gray-800 border-gray-200';
   }
 };
+
+// Mock bookings data for fallback
+const mockBookings = [
+  {
+    id: 1,
+    facility: 'Community Hall',
+    bookedBy: 'John Doe',
+    apartment: 'A-101',
+    date: '2025-05-10',
+    time: '6:00 PM - 9:00 PM',
+    purpose: 'Birthday Party',
+  },
+  {
+    id: 2,
+    facility: 'Tennis Court',
+    bookedBy: 'Robert Johnson',
+    apartment: 'C-303',
+    date: '2025-05-05',
+    time: '7:00 AM - 9:00 AM',
+    purpose: 'Practice Session',
+  },
+  {
+    id: 3,
+    facility: 'Community Hall',
+    bookedBy: 'Society Committee',
+    apartment: 'N/A',
+    date: '2025-05-15',
+    time: '5:00 PM - 8:00 PM',
+    purpose: 'Annual General Meeting',
+  },
+];
+
+interface Booking {
+  id: number;
+  amenity_id: number;
+  resident_id: number;
+  date: string;
+  time_slot: string;
+  purpose: string;
+}
 
 const Amenities: React.FC = () => {
   const { toast } = useToast();
@@ -61,22 +101,14 @@ const Amenities: React.FC = () => {
         
         // Transform the data to match the expected format
         return data.map(item => ({
-          amenity_id: item.amenity_id,
-          amenity_name: item.amenity_name || 'Unknown',
-          availability_status: item.availability_status || 'Available',
-          operating_hours: item.operating_hours || '9:00 AM - 9:00 PM',
-          staff_id: item.staff_id,
-          booking_fees: item.booking_fees,
-          booking_required: item.booking_required,
-          location: "Main Building", // Default value
-          capacity: 10, // Default value
-          maintenance_day: "Sunday", // Default value
-          // Compatibility fields
           id: item.amenity_id,
-          name: item.amenity_name || "Unknown",
-          status: item.availability_status || "Available",
-          opening_hours: item.operating_hours || "9:00 AM - 9:00 PM"
-        }) as Amenity);
+          name: item.amenity_name || 'Unknown',
+          location: item.location || 'Main Building',
+          capacity: item.capacity || 10,
+          opening_hours: item.operating_hours || '9:00 AM - 9:00 PM',
+          status: item.availability_status || 'Available',
+          maintenance_day: 'Sunday'
+        })) as Amenity[];
       } catch (err) {
         console.error('Error fetching amenities:', err);
         return mockAmenities;
@@ -84,13 +116,22 @@ const Amenities: React.FC = () => {
     }
   });
 
-  // Use mockBookings directly since the bookings table doesn't exist in the database yet
-  const { data: bookings = mockBookings, isLoading: isLoadingBookings } = useQuery({
+  const { data: bookings, isLoading: isLoadingBookings } = useQuery({
     queryKey: ['bookings'],
     queryFn: async () => {
-      // Return mock bookings data directly
-      console.log("Using mock bookings data");
-      return mockBookings;
+      try {
+        const { data, error } = await supabase.from('bookings').select('*');
+        
+        if (error) {
+          console.info('Supabase error for bookings:', error);
+          return mockBookings;
+        }
+        
+        return data as Booking[];
+      } catch (err) {
+        console.error('Error fetching bookings:', err);
+        return mockBookings;
+      }
     }
   });
 
@@ -123,8 +164,8 @@ const Amenities: React.FC = () => {
 
   const getAmenityName = (amenityId: number) => {
     if (amenities && amenities.length > 0) {
-      const amenity = amenities.find(a => a.amenity_id === amenityId);
-      return amenity ? amenity.amenity_name : 'Unknown';
+      const amenity = amenities.find(a => a.id === amenityId);
+      return amenity ? amenity.name : 'Unknown';
     }
     return 'Unknown';
   };
@@ -135,11 +176,11 @@ const Amenities: React.FC = () => {
     return bookings.map(booking => {
       const residentInfo = getResidentInfo(booking.resident_id);
       return {
-        id: booking.booking_id,
+        id: booking.id,
         facility: getAmenityName(booking.amenity_id),
         bookedBy: residentInfo.name,
         apartment: residentInfo.apartment,
-        date: booking.booking_date,
+        date: booking.date,
         time: booking.time_slot,
         purpose: booking.purpose,
       };
@@ -238,22 +279,22 @@ const Amenities: React.FC = () => {
                   </TableHeader>
                   <TableBody>
                     {amenities.map((amenity) => (
-                      <TableRow key={amenity.amenity_id}>
-                        <TableCell className="font-medium">{amenity.amenity_name || 'Unknown'}</TableCell>
+                      <TableRow key={amenity.id}>
+                        <TableCell className="font-medium">{amenity.name || 'Unknown'}</TableCell>
                         <TableCell className="hidden md:table-cell">{amenity.location || 'N/A'}</TableCell>
                         <TableCell>{amenity.capacity || 'N/A'}</TableCell>
-                        <TableCell className="hidden md:table-cell">{amenity.operating_hours || 'N/A'}</TableCell>
+                        <TableCell className="hidden md:table-cell">{amenity.opening_hours || 'N/A'}</TableCell>
                         <TableCell>
-                          <Badge variant="outline" className={getStatusColor(amenity.availability_status || '')}>
-                            {amenity.availability_status || 'Unknown'}
+                          <Badge variant="outline" className={getStatusColor(amenity.status || '')}>
+                            {amenity.status || 'Unknown'}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          {!amenity.availability_status || amenity.availability_status.toLowerCase() === 'available' ? (
+                          {!amenity.status || amenity.status.toLowerCase() === 'available' ? (
                             <Button 
                               variant="outline" 
                               size="sm"
-                              onClick={() => handleBookAmenity(amenity.amenity_id)}
+                              onClick={() => handleBookAmenity(amenity.id)}
                             >
                               Book Now
                             </Button>
@@ -261,9 +302,9 @@ const Amenities: React.FC = () => {
                             <Button 
                               variant="outline" 
                               size="sm"
-                              disabled={!amenity.availability_status || amenity.availability_status.toLowerCase() !== 'booked'}
+                              disabled={!amenity.status || amenity.status.toLowerCase() !== 'booked'}
                             >
-                              {amenity.availability_status && amenity.availability_status.toLowerCase() === 'booked' ? 'View Details' : 'Unavailable'}
+                              {amenity.status && amenity.status.toLowerCase() === 'booked' ? 'View Details' : 'Unavailable'}
                             </Button>
                           )}
                         </TableCell>
@@ -297,7 +338,7 @@ const Amenities: React.FC = () => {
                     <div className="space-y-1">
                       <div className="font-medium">{booking.facility || 'Unknown'}</div>
                       <div className="text-sm text-muted-foreground">
-                        {booking.date ? new Date(booking.date.toString()).toLocaleDateString() : 'N/A'} • {booking.time || 'N/A'}
+                        {booking.date ? new Date(booking.date).toLocaleDateString() : 'N/A'} • {booking.time || 'N/A'}
                       </div>
                       <div className="text-sm">Purpose: {booking.purpose || 'N/A'}</div>
                     </div>

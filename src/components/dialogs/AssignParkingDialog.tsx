@@ -8,7 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { mockResidents } from "@/types/database";
 
 interface AssignParkingDialogProps {
   open: boolean;
@@ -24,24 +23,21 @@ export function AssignParkingDialog({ open, onOpenChange, onAssign, spotId }: As
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  // Use fallback data if query fails
-  const { data: residents = mockResidents } = useQuery({
-    queryKey: ["resident-data"],
+  const { data: residents } = useQuery({
+    queryKey: ["residents"],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase
-          .from('resident')
-          .select('resident_id, name');
+        const { data, error } = await supabase.from('residents').select('id, name');
         
         if (error) {
           console.error('Error fetching residents:', error);
-          return mockResidents;
+          return [];
         }
         
         return data;
       } catch (err) {
         console.error('Error in residents query:', err);
-        return mockResidents;
+        return [];
       }
     }
   });
@@ -58,20 +54,20 @@ export function AssignParkingDialog({ open, onOpenChange, onAssign, spotId }: As
 
     setIsSubmitting(true);
     try {
-      // Try to update Supabase first
       const { error } = await supabase
         .from('parking')
         .update({
           resident_id: residentId,
           vehicle_type: vehicleType,
           vehicle_number: vehicleNumber,
-          parking_status: 'Occupied' // This matches the parking_status column in DB
+          status: 'Occupied'
         })
-        .eq('parking_id', spotId); // This matches the parking_id column in DB
+        .eq('id', spotId);
 
       if (error) {
-        console.log('Error assigning parking in database:', error);
-        // Fall back to local data updating if needed
+        console.log('Error assigning parking in database, using local fallback:', error);
+        // We'll let the parent component handle the successful assignment
+        // through the onAssign callback
       }
 
       toast({
@@ -112,7 +108,7 @@ export function AssignParkingDialog({ open, onOpenChange, onAssign, spotId }: As
               </SelectTrigger>
               <SelectContent>
                 {residents?.map((resident) => (
-                  <SelectItem key={resident.resident_id} value={resident.resident_id?.toString() || ''}>
+                  <SelectItem key={resident.id} value={resident.id.toString()}>
                     {resident.name}
                   </SelectItem>
                 ))}

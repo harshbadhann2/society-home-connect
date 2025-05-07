@@ -58,33 +58,23 @@ const Settings: React.FC = () => {
             .limit(1);
             
           if (data && data.length > 0) {
-            return {
-              ...data[0],
-              // Add fields used in the component that might not be in the database
-              id: data[0].staff_id
-            };
+            return data[0];
           } else {
-            const mockUser = { ...mockStaff[0], id: mockStaff[0].staff_id };
-            return mockUser; // Fallback to mock data
+            return mockStaff[0]; // Fallback to mock data
           }
         }
         
         // For residents, try to fetch from database first
         if (userRole === 'resident') {
           const { data, error } = await supabase
-            .from('resident')
+            .from('residents')
             .select('*')
             .limit(1);
             
           if (data && data.length > 0) {
-            return {
-              ...data[0],
-              // Add fields used in the component that might not be in the database
-              id: data[0].resident_id
-            };
+            return data[0];
           } else {
-            const mockUser = { ...mockResidents[0], id: mockResidents[0].resident_id };
-            return mockUser; // Fallback to mock data
+            return mockResidents[0]; // Fallback to mock data
           }
         }
         
@@ -96,12 +86,11 @@ const Settings: React.FC = () => {
           const admin = mockUsers.find(user => user.role === 'admin');
           return {
             name: admin?.email?.split('@')[0] || 'Admin',
-            email: admin?.email || 'admin@example.com',
-            id: admin?.user_id
+            email: admin?.email || 'admin@example.com'
           };
         }
-        if (userRole === 'staff') return { ...mockStaff[0], id: mockStaff[0].staff_id };
-        return { ...mockResidents[0], id: mockResidents[0].resident_id };
+        if (userRole === 'staff') return mockStaff[0];
+        return mockResidents[0];
       }
     }
   });
@@ -119,34 +108,26 @@ const Settings: React.FC = () => {
         }
         
         if (userRole === 'resident') {
-          // Check if userData has resident_id directly or via id property
-          const residentId = (userData as any).resident_id || userData.id;
-          
           const { data, error } = await supabase
-            .from('resident')
+            .from('residents')
             .update({
               name: updatedSettings.name,
               email: updatedSettings.email,
             })
-            .eq('resident_id', residentId)
-            .select();
+            .eq('id', userData.id);
           
           if (error) throw error;
           return data;
         }
         
         if (userRole === 'staff') {
-          // Check if userData has staff_id directly or via id property
-          const staffId = (userData as any).staff_id || userData.id;
-          
           const { data, error } = await supabase
             .from('staff')
             .update({
               name: updatedSettings.name,
               email: updatedSettings.email,
             })
-            .eq('staff_id', staffId)
-            .select();
+            .eq('id', userData.id);
           
           if (error) throw error;
           return data;
@@ -181,24 +162,20 @@ const Settings: React.FC = () => {
   // Update account settings from userData when it loads
   useEffect(() => {
     if (userData) {
-      // For admin users with just email
-      if (userRole === 'admin' && 'email' in userData) {
+      if ('name' in userData && 'email' in userData) {
+        setAccountSettings({
+          name: userData.name,
+          email: userData.email,
+        });
+      } else if ('email' in userData) {
+        // If we only have email (like for admin)
         setAccountSettings({
           name: userData.name || userData.email.split('@')[0],
           email: userData.email,
         });
-        return;
-      }
-      
-      // For resident and staff users
-      if ('name' in userData && 'email' in userData) {
-        setAccountSettings({
-          name: userData.name,
-          email: userData.email || '',
-        });
       }
     }
-  }, [userData, userRole]);
+  }, [userData]);
 
   const handleAccountSave = () => {
     updateUserMutation.mutate(accountSettings);

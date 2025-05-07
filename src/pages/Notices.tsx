@@ -14,57 +14,49 @@ import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { CreateNoticeDialog } from '@/components/dialogs/CreateNoticeDialog';
-import { Notice, mockComplaints } from '@/types/database';
+
+interface Notice {
+  id: number;
+  title: string;
+  date: string;
+  category: string;
+  priority: string;
+  content: string;
+}
 
 // Mock notices data
 const mockNotices = [
   {
     id: 1,
-    notice_id: 1,
     title: 'Annual General Meeting',
     date: '2025-05-15',
-    posted_date: '2025-05-01',
     category: 'Meeting',
     priority: 'high',
     content: 'The Annual General Meeting will be held in the community hall at 6:00 PM. All residents are requested to attend.',
-    message: 'The Annual General Meeting will be held in the community hall at 6:00 PM. All residents are requested to attend.',
-    posted_by: 'Society Secretary'
   },
   {
     id: 2,
-    notice_id: 2,
     title: 'Water Supply Interruption',
     date: '2025-05-10',
-    posted_date: '2025-05-05',
     category: 'Maintenance',
     priority: 'medium',
     content: 'Water supply will be interrupted from 10:00 AM to 2:00 PM for maintenance work.',
-    message: 'Water supply will be interrupted from 10:00 AM to 2:00 PM for maintenance work.',
-    posted_by: 'Maintenance Manager'
   },
   {
     id: 3,
-    notice_id: 3,
     title: 'New Security Measures',
     date: '2025-05-08',
-    posted_date: '2025-05-03',
     category: 'Security',
     priority: 'high',
     content: 'New security protocols will be implemented starting next week. Please check your email for details.',
-    message: 'New security protocols will be implemented starting next week. Please check your email for details.',
-    posted_by: 'Security Head'
   },
   {
     id: 4,
-    notice_id: 4,
     title: 'Community Garden Initiative',
     date: '2025-05-05',
-    posted_date: '2025-05-01',
     category: 'Community',
     priority: 'low',
     content: 'Join us this Saturday for the launch of our community garden project.',
-    message: 'Join us this Saturday for the launch of our community garden project.',
-    posted_by: 'Community Manager'
   },
 ];
 
@@ -88,27 +80,14 @@ const Notices: React.FC = () => {
     queryKey: ['notices'],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase.from('notice_board').select('*');
+        const { data, error } = await supabase.from('notices').select('*');
         
         if (error) {
           console.error('Supabase error:', error);
           return mockNotices;
         }
         
-        // Process the data to match our Notice interface
-        return data.map(item => ({
-          notice_id: item.notice_id,
-          title: item.title || '',
-          message: item.message || '',
-          content: item.message || '', // Map message to content for compatibility
-          posted_by: item.posted_by || '',
-          posted_date: item.posted_date || '',
-          date: item.posted_date || '', // Map posted_date to date for compatibility
-          priority: 'normal', // Default priority since it's not in database
-          category: 'General', // Default category since it's not in database
-          // Compatibility fields
-          id: item.notice_id,
-        })) as Notice[];
+        return (data || []) as Notice[];
       } catch (err) {
         console.error('Error fetching notices:', err);
         return mockNotices;
@@ -116,14 +95,8 @@ const Notices: React.FC = () => {
     }
   });
 
-  const highPriorityCount = notices?.filter(notice => 
-    notice.priority === 'high' || notice.priority === 'High'
-  ).length || 0;
-  
-  const maintenanceCount = notices?.filter(notice => 
-    notice.category === 'Maintenance' || notice.category === 'maintenance'
-  ).length || 0;
-  
+  const highPriorityCount = notices?.filter(notice => notice.priority === 'high').length || 0;
+  const maintenanceCount = notices?.filter(notice => notice.category === 'Maintenance').length || 0;
   const upcomingCount = notices?.length || 0;
 
   return (
@@ -198,23 +171,23 @@ const Notices: React.FC = () => {
               <div className="space-y-4">
                 {notices?.map((notice) => (
                   <div
-                    key={notice.id || notice.notice_id}
+                    key={notice.id}
                     className="flex flex-col md:flex-row md:items-center justify-between p-4 border rounded-md hover:bg-muted/50 transition-colors"
                   >
                     <div className="space-y-1">
                       <div className="font-medium">{notice.title}</div>
                       <div className="text-sm text-muted-foreground">
-                        {new Date(notice.date || notice.posted_date).toLocaleDateString()}
+                        {new Date(notice.date).toLocaleDateString()}
                       </div>
-                      <p className="text-sm mt-2">{notice.content || notice.message}</p>
+                      <p className="text-sm mt-2">{notice.content}</p>
                     </div>
                     <div className="flex items-center mt-2 md:mt-0 gap-2">
-                      <Badge variant="outline">{notice.category || 'General'}</Badge>
+                      <Badge variant="outline">{notice.category}</Badge>
                       <Badge
                         variant="outline"
-                        className={getPriorityColor(notice.priority || 'normal')}
+                        className={getPriorityColor(notice.priority)}
                       >
-                        {notice.priority || 'normal'}
+                        {notice.priority}
                       </Badge>
                     </div>
                   </div>

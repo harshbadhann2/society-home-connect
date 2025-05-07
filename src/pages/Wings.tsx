@@ -21,14 +21,49 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { mockWings, Wing } from '@/types/database';
+
+// Mock data for wings
+const mockWings = [
+  {
+    id: 1,
+    name: 'Wing A',
+    floors: 10,
+    apartments: 40,
+    maintenance_day: 'Monday',
+    status: 'Active',
+  },
+  {
+    id: 2,
+    name: 'Wing B',
+    floors: 10,
+    apartments: 40,
+    maintenance_day: 'Tuesday',
+    status: 'Active',
+  },
+  {
+    id: 3,
+    name: 'Wing C',
+    floors: 8,
+    apartments: 32,
+    maintenance_day: 'Wednesday',
+    status: 'Under Maintenance',
+  },
+  {
+    id: 4,
+    name: 'Wing D',
+    floors: 12,
+    apartments: 48,
+    maintenance_day: 'Thursday',
+    status: 'Active',
+  },
+];
 
 const Wings: React.FC = () => {
   const { data: wings, isLoading, error } = useQuery({
     queryKey: ['wings'],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase.from('wing').select('*');
+        const { data, error } = await supabase.from('wings').select('*');
         
         if (error) {
           console.info('Supabase error:', error);
@@ -36,19 +71,7 @@ const Wings: React.FC = () => {
           return mockWings;
         }
         
-        // Map database schema to our interface
-        return data.map(wing => ({
-          wing_id: wing.wing_id,
-          id: wing.wing_id,
-          wing_name: wing.wing_name,
-          name: wing.wing_name,
-          total_floors: wing.total_floors || 0,
-          floors: wing.total_floors || 0,
-          total_apartments: wing.total_apartments || 0,
-          apartments: wing.total_apartments || 0,
-          maintenance_day: 'Monday', // Default value as it might not be in database
-          status: 'Active' // Default value as it might not be in database
-        })) as Wing[];
+        return data || mockWings;
       } catch (err) {
         console.error('Error fetching wings:', err);
         return mockWings;
@@ -56,8 +79,8 @@ const Wings: React.FC = () => {
     }
   });
 
-  const totalApartments = wings?.reduce((total, wing) => total + (wing.apartments || wing.total_apartments || 0), 0) || 0;
-  const totalFloors = wings?.reduce((max, wing) => Math.max(max, wing.floors || wing.total_floors || 0), 0) || 0;
+  const totalApartments = wings?.reduce((total, wing) => total + wing.apartments, 0) || 0;
+  const totalFloors = wings?.reduce((max, wing) => Math.max(max, wing.floors), 0) || 0;
 
   return (
     <Layout>
@@ -142,14 +165,14 @@ const Wings: React.FC = () => {
                   </TableHeader>
                   <TableBody>
                     {wings?.map((wing) => (
-                      <TableRow key={wing.id || wing.wing_id}>
-                        <TableCell className="font-medium">{wing.name || wing.wing_name}</TableCell>
-                        <TableCell>{wing.floors || wing.total_floors}</TableCell>
-                        <TableCell>{wing.apartments || wing.total_apartments}</TableCell>
-                        <TableCell>{wing.maintenance_day || 'Monday'}</TableCell>
+                      <TableRow key={wing.id}>
+                        <TableCell className="font-medium">{wing.name}</TableCell>
+                        <TableCell>{wing.floors}</TableCell>
+                        <TableCell>{wing.apartments}</TableCell>
+                        <TableCell>{wing.maintenance_day}</TableCell>
                         <TableCell>
                           <Badge variant={wing.status === 'Active' ? 'default' : 'secondary'}>
-                            {wing.status || 'Active'}
+                            {wing.status}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">

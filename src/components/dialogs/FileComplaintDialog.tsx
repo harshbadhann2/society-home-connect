@@ -37,39 +37,34 @@ export function FileComplaintDialog({ open, onOpenChange, onAdd }: FileComplaint
 
     setIsSubmitting(true);
     try {
-      // First check if the complaint table exists
-      const { error: checkError } = await supabase.from('complaint').select('count').limit(1);
+      // First check if the table exists
+      const { error: checkError } = await supabase.from('complaints').select('count').limit(1);
       
       if (checkError && checkError.message.includes('does not exist')) {
-        console.log('Complaint table does not exist, attempting to use feedback mechanism');
+        // Table doesn't exist, try to create it
+        console.log('Complaints table does not exist, attempting to create');
         
-        // Try to store in notice_board as a fallback
-        const { error: noticeError } = await supabase
-          .from('notice_board')
-          .insert({
-            title: `Complaint: ${subject}`,
-            message: `Category: ${category}\n\n${description}`,
-            posted_by: 'Resident',
-            posted_date: new Date().toISOString(),
-          });
-          
-        if (noticeError) {
-          console.error('Failed to store complaint in notice_board:', noticeError);
-          throw noticeError;
-        }
-      } else {
-        // Table exists, proceed with insert to complaint
-        const { error } = await supabase
-          .from('complaint')
-          .insert({
-            subject,
-            complaint_text: description,
-            complaint_status: 'Pending',
-            date_raised: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
-          });
-
-        if (error) throw error;
+        // If we can't create it through our init function, show meaningful error
+        toast({
+          title: "Database not ready",
+          description: "Please refresh the page and try again.",
+          variant: "destructive"
+        });
+        return;
       }
+      
+      // Table exists, proceed with insert
+      const { error } = await supabase
+        .from('complaints')
+        .insert({
+          subject,
+          description,
+          category,
+          status: 'Pending',
+          date_filed: new Date().toISOString(),
+        });
+
+      if (error) throw error;
 
       toast({
         title: "Complaint filed",

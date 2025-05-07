@@ -35,25 +35,14 @@ export function CreateNoticeDialog({ open, onOpenChange, onAdd }: CreateNoticeDi
 
     setIsSubmitting(true);
     try {
-      // First check if notice_board exists
-      const { data: checkData, error: checkError } = await supabase
-        .from('notice_board')
-        .select('count')
-        .limit(1);
-      
-      if (checkError && !checkError.message.includes('exist')) {
-        console.error('Error checking notice_board:', checkError);
-        throw checkError;
-      }
-      
-      // Use notice_board to store notices
       const { error } = await supabase
-        .from('notice_board')
+        .from('notices')
         .insert({
-          title: title,
-          message: content,
-          posted_by: category, // Using category as posted_by
-          posted_date: new Date().toISOString(),
+          title,
+          content,
+          category,
+          priority,
+          date: new Date().toISOString(),
         });
 
       if (error) throw error;

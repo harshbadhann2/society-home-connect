@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import Layout from '@/components/layout/layout';
 import { Button } from '@/components/ui/button';
@@ -21,15 +22,72 @@ import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { RecordPaymentDialog } from '@/components/dialogs/RecordPaymentDialog';
-import { Payment, mockPayments, mockPaymentResidents } from '@/types/database';
 
-// If mockPaymentResidents doesn't exist in database.ts, add it here
-const localMockPaymentResidents = [
-  { id: 1, resident_id: 1, name: "John Doe", apartment: "A-101" },
-  { id: 2, resident_id: 2, name: "Jane Smith", apartment: "B-202" },
-  { id: 3, resident_id: 3, name: "Robert Johnson", apartment: "C-303" },
-  { id: 4, resident_id: 4, name: "Michael Brown", apartment: "D-404" },
-  { id: 5, resident_id: 5, name: "Emily Wong", apartment: "A-105" }
+// Payment interface
+interface Payment {
+  id: number;
+  description: string;
+  resident_id: number;
+  apartment?: string;
+  amount: number;
+  date: string;
+  status: string;
+  payment_method?: string;
+  currency: string;
+}
+
+// Mock payments data
+const mockPayments = [
+  {
+    id: 1,
+    description: 'Maintenance Fee - May 2025',
+    resident_id: 1,
+    apartment: 'A-101',
+    amount: 250.00,
+    date: '2025-05-02',
+    status: 'Paid',
+    currency: 'INR',
+  },
+  {
+    id: 2,
+    description: 'Maintenance Fee - May 2025',
+    resident_id: 2,
+    apartment: 'B-202',
+    amount: 250.00,
+    date: '2025-05-01',
+    status: 'Paid',
+    currency: 'INR',
+  },
+  {
+    id: 3,
+    description: 'Maintenance Fee - May 2025',
+    resident_id: 3,
+    apartment: 'C-303',
+    amount: 250.00,
+    date: '2025-05-03',
+    status: 'Pending',
+    currency: 'INR',
+  },
+  {
+    id: 4,
+    description: 'Maintenance Fee - May 2025',
+    resident_id: 4,
+    apartment: 'D-404',
+    amount: 250.00,
+    date: '2025-05-02',
+    status: 'Pending',
+    currency: 'INR',
+  },
+  {
+    id: 5,
+    description: 'Community Hall Booking',
+    resident_id: 1,
+    apartment: 'A-101',
+    amount: 100.00,
+    date: '2025-04-28',
+    status: 'Paid',
+    currency: 'INR',
+  },
 ];
 
 const getStatusColor = (status: string) => {
@@ -52,78 +110,61 @@ const Payments: React.FC = () => {
     queryKey: ['payments'],
     queryFn: async () => {
       try {
-        // Try to get payments from the banking table in database 
-        // since we don't have a payments table
-        const { data, error } = await supabase.from('banking').select('*').order('transaction_date', { ascending: false });
+        const { data, error } = await supabase.from('payments').select('*').order('date', { ascending: false });
         
         if (error) {
           console.error('Supabase error:', error);
-          return mockPayments || [];
+          return mockPayments;
         }
         
-        // Map banking data to our Payment interface
-        return data.map(item => ({
-          transaction_id: item.transaction_id,
-          id: item.transaction_id,
-          resident_id: item.resident_id || 0,
-          amount: item.amount || 0,
-          transaction_date: item.transaction_date || '',
-          date: item.transaction_date || '',
-          payment_method: item.payment_method || '',
-          banking_status: item.banking_status || '',
-          status: item.banking_status || '',
-          purpose: item.purpose || '',
-          description: item.purpose || 'Payment',
-          currency: 'INR' // Default currency
-        })) as Payment[];
+        return (data as Payment[]) || mockPayments;
       } catch (err) {
         console.error('Error fetching payments:', err);
-        return mockPayments || [];
+        return mockPayments;
       }
     }
   });
 
   const { data: residents } = useQuery({
-    queryKey: ['payment-residents'],
+    queryKey: ['residents'],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase.from('resident').select('resident_id, name, apartment_id');
+        const { data, error } = await supabase.from('residents').select('id, name, apartment');
         
         if (error) {
           console.error('Supabase error fetching residents:', error);
-          return localMockPaymentResidents;
+          return [];
         }
         
-        return data.map(r => ({
-          resident_id: r.resident_id,
-          id: r.resident_id,
-          name: r.name,
-          apartment: r.apartment_id?.toString() || 'N/A'
-        }));
+        return data;
       } catch (err) {
         console.error('Error fetching residents:', err);
-        return localMockPaymentResidents;
+        return [];
       }
     }
   });
 
   const getResidentName = (residentId: number) => {
-    if (!residents) return 'Unknown';
-    const resident = residents.find(r => r.resident_id === residentId || r.id === residentId);
-    return resident?.name || 'Unknown';
+    if (residents && residents.length > 0) {
+      const resident = residents.find((r: any) => r.id === residentId);
+      return resident ? resident.name : 'Unknown';
+    }
+    return 'Unknown';
   };
 
   const getResidentApartment = (residentId: number) => {
-    if (!residents) return 'N/A';
-    const resident = residents.find(r => r.resident_id === residentId || r.id === residentId);
-    return resident?.apartment || 'N/A';
+    if (residents && residents.length > 0) {
+      const resident = residents.find((r: any) => r.id === residentId);
+      return resident ? resident.apartment : 'N/A';
+    }
+    return 'N/A';
   };
 
   // Calculate payment statistics
-  const paidPayments = payments?.filter(p => (p.status || p.banking_status || '').toLowerCase() === 'paid') || [];
+  const paidPayments = payments?.filter(p => p.status.toLowerCase() === 'paid') || [];
   const totalCollected = paidPayments.reduce((sum, payment) => sum + payment.amount, 0);
   
-  const pendingPayments = payments?.filter(p => (p.status || p.banking_status || '').toLowerCase() === 'pending') || [];
+  const pendingPayments = payments?.filter(p => p.status.toLowerCase() === 'pending') || [];
   const pendingAmount = pendingPayments.reduce((sum, payment) => sum + payment.amount, 0);
   
   const maintenanceFee = 250; // Assumption based on mock data
@@ -236,19 +277,19 @@ const Payments: React.FC = () => {
                   </TableHeader>
                   <TableBody>
                     {payments?.map((payment) => (
-                      <TableRow key={payment.id || payment.transaction_id}>
-                        <TableCell className="font-medium">{payment.description || payment.purpose}</TableCell>
+                      <TableRow key={payment.id}>
+                        <TableCell className="font-medium">{payment.description}</TableCell>
                         <TableCell>{getResidentName(payment.resident_id)}</TableCell>
                         <TableCell className="hidden md:table-cell">
                           {payment.apartment || getResidentApartment(payment.resident_id)}
                         </TableCell>
                         <TableCell>₹{payment.amount.toFixed(2)}</TableCell>
                         <TableCell className="hidden md:table-cell">
-                          {new Date(payment.date || payment.transaction_date).toLocaleDateString()}
+                          {new Date(payment.date).toLocaleDateString()}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className={getStatusColor(payment.status || payment.banking_status)}>
-                            {payment.status || payment.banking_status}
+                          <Badge variant="outline" className={getStatusColor(payment.status)}>
+                            {payment.status}
                           </Badge>
                         </TableCell>
                       </TableRow>

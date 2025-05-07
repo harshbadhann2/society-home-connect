@@ -1,6 +1,6 @@
 
 import React, { useState, useContext, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Bell, Menu } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -20,7 +20,6 @@ import { supabase } from '@/integrations/supabase/client';
 
 const Header: React.FC = () => {
   const isMobile = useIsMobile();
-  const navigate = useNavigate();
   const { toggleSidebar } = useSidebarContext();
   const { userRole, setIsAuthenticated, setUserRole, currentUser, setCurrentUser } = useContext(AuthContext);
   const [notifications, setNotifications] = useState([
@@ -39,21 +38,10 @@ const Header: React.FC = () => {
     else setTimeOfDay("Good Evening");
   }, []);
   
-  const handleLogout = async () => {
-    // First try Supabase logout if we have auth session
-    try {
-      await supabase.auth.signOut();
-    } catch (error) {
-      console.error("Error signing out from Supabase:", error);
-    }
-    
-    // Clear app state regardless of Supabase auth status
+  const handleLogout = () => {
     setIsAuthenticated(false);
     setUserRole(null);
     setCurrentUser(null);
-    
-    // Redirect to login page
-    navigate('/login');
   };
   
   // Helper function to get user's name

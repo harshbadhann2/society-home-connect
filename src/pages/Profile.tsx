@@ -1,41 +1,23 @@
+
 import React, { useState, useEffect, useContext } from 'react';
-import { format } from 'date-fns';
-import { Link } from 'react-router-dom';
 import Layout from '@/components/layout/layout';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { Staff, Resident, mockStaff, mockResidents, mockUsers } from '@/types/database';
-import AuthContext from '@/context/AuthContext';
-import { useToast } from '@/hooks/use-toast';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import {
-  Loader2,
-  Mail,
-  Phone,
-  Calendar,
-  Home,
-  UserRound as User,
-  Shield,
-  Key,
-  Settings,
-  Lock,
-  Bed,
-  CreditCard,
-  MessageSquare,
-  FileText,
-  UserRound,
-  BadgeIndianRupee,
-  BellRing,
-  CalendarDays
-} from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { User, Mail, Phone, Home, Key, BadgeIndianRupee, CalendarDays, UserRound, BellRing, FileText, Settings, Shield, CreditCard, Lock } from 'lucide-react';
+import AuthContext from '@/context/AuthContext';
+import { mockResidents } from '@/types/database';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/components/ui/use-toast';
+import { Badge } from '@/components/ui/badge';
+import { format } from 'date-fns';
+import { Link } from 'react-router-dom';
+import { Calendar, MessageSquare, Bed } from 'lucide-react';
 
 const Profile: React.FC = () => {
   const { userRole, currentUser } = useContext(AuthContext);
@@ -113,7 +95,7 @@ const Profile: React.FC = () => {
               name: data.name,
               email: currentUser.email,
               contact: data.contact_number,
-              position: data.role || "Staff", // Map role to position
+              position: data.position || data.role,
               status: 'Active',
             };
             
@@ -298,7 +280,7 @@ const Profile: React.FC = () => {
       case 'Payment': return <CreditCard className="h-5 w-5 text-green-500" />;
       case 'Complaint': return <MessageSquare className="h-5 w-5 text-red-500" />;
       case 'Notice': return <FileText className="h-5 w-5 text-purple-500" />;
-      case 'Visitor': return <UserRound className="h-5 w-5 text-orange-500" />;
+      case 'Visitor': return <User className="h-5 w-5 text-orange-500" />;
       default: return <Calendar className="h-5 w-5 text-gray-500" />;
     }
   };
@@ -326,7 +308,6 @@ const Profile: React.FC = () => {
           </p>
         </div>
 
-        {/* Profile grid layout */}
         <div className="grid gap-6 md:grid-cols-[250px_1fr]">
           <div className="space-y-6">
             <Card>

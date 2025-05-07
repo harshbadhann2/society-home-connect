@@ -52,8 +52,7 @@ const Residents: React.FC = () => {
           // Create the table if it doesn't exist
           if (error.message.includes("does not exist")) {
             try {
-              // Fix for TypeScript error: use a type assertion to call the RPC function
-              // @ts-ignore - We're handling this safely with a fallback
+              // Try to create the table with proper schema
               const createTableResult = await supabase.rpc('create_residents_table_if_not_exists');
               console.log("Table creation result:", createTableResult);
               
@@ -77,18 +76,7 @@ const Residents: React.FC = () => {
           throw error;
         }
         
-        return data.map(res => ({
-          resident_id: res.resident_id,
-          id: res.resident_id,
-          name: res.name || '',
-          apartment_id: res.apartment_id || 0,
-          apartment: res.apartment_id?.toString() || '',
-          status: res.status || '',
-          contact_number: res.contact_number || '',
-          contact: res.contact_number || '',
-          email: res.email || '',
-          joining_date: res.joining_date || ''
-        })) as Resident[];
+        return data as Resident[];
       } catch (err) {
         console.log("Falling back to mock data:", err);
         return mockResidents;
@@ -99,8 +87,8 @@ const Residents: React.FC = () => {
   // Handle search functionality
   const filteredResidents = residents?.filter(resident =>
     resident.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (resident.apartment?.toString() || '').includes(searchTerm) ||
-    (resident.email || '').toLowerCase().includes(searchTerm.toLowerCase())
+    resident.apartment?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    resident.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // Show error toast if fetching fails
@@ -114,7 +102,7 @@ const Residents: React.FC = () => {
     }
   }, [error]);
 
-  const handleAddResident = async (newResident: Omit<Resident, 'id' | 'created_at' | 'resident_id'>) => {
+  const handleAddResident = async (newResident: Omit<Resident, 'id' | 'created_at'>) => {
     if (!canViewAllResidents) {
       toast({
         title: "Permission Denied",
@@ -135,8 +123,7 @@ const Residents: React.FC = () => {
           .limit(1);
           
         if (checkError && checkError.message.includes("does not exist")) {
-          // Table doesn't exist, create it - using type assertion for the RPC call
-          // @ts-ignore - We're handling this safely with fallback
+          // Table doesn't exist, create it
           await supabase.rpc('create_residents_table_if_not_exists');
           console.log("Created residents table");
         }
@@ -150,10 +137,8 @@ const Residents: React.FC = () => {
         .insert([{ 
           name: newResident.name,
           email: newResident.email,
-          contact_number: newResident.contact || newResident.contact_number,
-          apartment_id: typeof newResident.apartment === 'string' ? 
-            parseInt(newResident.apartment) : 
-            newResident.apartment_id || (newResident.apartment as number) || 0,
+          contact_number: newResident.contact,
+          apartment_id: parseInt(newResident.apartment),
           status: newResident.status,
           joining_date: new Date().toISOString().split('T')[0]
         }])
@@ -271,14 +256,14 @@ const Residents: React.FC = () => {
                   <TableBody>
                     {filteredResidents && filteredResidents.length > 0 ? (
                       filteredResidents.map((resident) => (
-                        <TableRow key={resident.resident_id || resident.id}>
+                        <TableRow key={resident.id}>
                           <TableCell className="font-medium">{resident.name}</TableCell>
                           <TableCell>{resident.apartment}</TableCell>
                           <TableCell>{resident.status}</TableCell>
                           <TableCell>
                             <div className="flex items-center">
                               <Phone className="mr-2 h-4 w-4" />
-                              <span className="hidden md:inline">{resident.contact || resident.contact_number}</span>
+                              <span className="hidden md:inline">{resident.contact}</span>
                             </div>
                           </TableCell>
                           <TableCell className="hidden md:table-cell">

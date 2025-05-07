@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import Layout from '@/components/layout/layout';
 import { Button } from '@/components/ui/button';
 import {
@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Plus, Home, Building2, User } from 'lucide-react';
+import { Plus, Building, User, Home, Calendar } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -21,78 +21,90 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Apartment, mockApartments as importedMockApartments } from '@/types/database';
 
-// Local mock apartments for this component if needed
-const localMockApartments = [
+// Mock data for apartments
+const mockApartments = [
   {
     id: 1,
-    apartment_id: 1,
-    apartment_number: 'A-101',
+    unit: 'A-101',
     type: '2 BHK',
     size: '1200 sqft',
     bedrooms: 2,
     bathrooms: 2,
     wing: 'A',
-    owner_name: 'John Doe',
-    owner_contact: '555-1234',
-    apartment_status: 'Occupied',
-    status: 'Occupied'
+    owner: 'John Doe',
+    status: 'Occupied',
   },
-  // ... other mock apartments
+  {
+    id: 2,
+    unit: 'B-202',
+    type: '1 BHK',
+    size: '950 sqft',
+    bedrooms: 1,
+    bathrooms: 1,
+    wing: 'B',
+    owner: 'Jane Smith',
+    status: 'Occupied',
+  },
+  {
+    id: 3,
+    unit: 'C-303',
+    type: '3 BHK',
+    size: '1800 sqft',
+    bedrooms: 3,
+    bathrooms: 2,
+    wing: 'C',
+    owner: 'Robert Johnson',
+    status: 'Occupied',
+  },
+  {
+    id: 4,
+    unit: 'D-404',
+    type: '2 BHK',
+    size: '1100 sqft',
+    bedrooms: 2,
+    bathrooms: 1,
+    wing: 'D',
+    owner: 'Michael Brown',
+    status: 'Vacant',
+  },
+  {
+    id: 5,
+    unit: 'A-105',
+    type: '2 BHK',
+    size: '1300 sqft',
+    bedrooms: 2,
+    bathrooms: 2,
+    wing: 'A',
+    owner: 'Emily Wong',
+    status: 'Occupied',
+  },
 ];
-
-// Use imported mock data or local mock data
-const mockApartments = importedMockApartments || localMockApartments;
 
 const Properties: React.FC = () => {
   const { data: apartments, isLoading, error } = useQuery({
     queryKey: ['apartments'],
     queryFn: async () => {
       try {
-        // Change from 'apartment' to match the actual table name in Supabase
-        const { data, error } = await supabase.from('apartment').select('*');
+        const { data, error } = await supabase.from('apartments').select('*');
         
         if (error) {
-          console.error('Error fetching apartments:', error);
+          console.info('Supabase error:', error);
+          console.info('Using mock apartments data');
           return mockApartments;
         }
         
-        // Map database fields to match our Apartment interface
-        return data.map(apt => ({
-          apartment_id: apt.apartment_id,
-          id: apt.apartment_id,
-          apartment_number: apt.apartment_number,
-          unit: apt.apartment_number,
-          owner_name: apt.owner_name,
-          owner: apt.owner_name,
-          owner_contact: apt.owner_contact,
-          apartment_status: apt.apartment_status,
-          status: apt.apartment_status,
-          block: apt.block,
-          wing: apt.block,
-          wing_id: apt.wing_id,
-          floor_number: apt.floor_number,
-          // Add default fields that might be expected but aren't in the database
-          type: '2 BHK', // Default type
-          size: 'N/A', // Default size
-          bedrooms: 2, // Default bedrooms
-          bathrooms: 1, // Default bathrooms
-        })) as Apartment[];
+        return data || mockApartments;
       } catch (err) {
-        console.error('Error in apartments query:', err);
+        console.error('Error fetching apartments:', err);
         return mockApartments;
       }
     }
   });
 
-  // Count different apartment types
-  const countByType = {
-    '1 BHK': apartments?.filter(apt => (apt.type || '2 BHK') === '1 BHK').length || 0,
-    '2 BHK': apartments?.filter(apt => (apt.type || '2 BHK') === '2 BHK').length || 0,
-    '3 BHK': apartments?.filter(apt => (apt.type || '2 BHK') === '3 BHK').length || 0,
-    'Other': apartments?.filter(apt => !['1 BHK', '2 BHK', '3 BHK'].includes(apt.type || '2 BHK')).length || 0,
-  };
+  const oneBhk = apartments?.filter(apt => apt.type === '1 BHK').length || 0;
+  const twoBhk = apartments?.filter(apt => apt.type === '2 BHK').length || 0;
+  const threeBhk = apartments?.filter(apt => apt.type === '3 BHK').length || 0;
 
   return (
     <Layout>
@@ -119,7 +131,7 @@ const Properties: React.FC = () => {
             <CardContent>
               <div className="flex items-center">
                 <Home className="h-8 w-8 text-primary mr-2" />
-                <span className="text-2xl font-bold">{countByType['1 BHK']}</span>
+                <span className="text-2xl font-bold">{oneBhk}</span>
               </div>
             </CardContent>
           </Card>
@@ -131,8 +143,8 @@ const Properties: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="flex items-center">
-                <Building2 className="h-8 w-8 text-primary mr-2" />
-                <span className="text-2xl font-bold">{countByType['2 BHK']}</span>
+                <Building className="h-8 w-8 text-primary mr-2" />
+                <span className="text-2xl font-bold">{twoBhk}</span>
               </div>
             </CardContent>
           </Card>
@@ -145,7 +157,7 @@ const Properties: React.FC = () => {
             <CardContent>
               <div className="flex items-center">
                 <User className="h-8 w-8 text-primary mr-2" />
-                <span className="text-2xl font-bold">{countByType['3 BHK']}</span>
+                <span className="text-2xl font-bold">{threeBhk}</span>
               </div>
             </CardContent>
           </Card>
